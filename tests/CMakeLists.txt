@@ -13,7 +13,8 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
 add_executable(OpenEraTests
-    ByteReaderTests.cpp)
+    ByteReaderTests.cpp
+    LoggerTests.cpp)
 
 target_link_libraries(OpenEraTests PRIVATE
     OpenEra::Core
