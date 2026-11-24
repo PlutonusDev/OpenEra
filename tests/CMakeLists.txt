@@ -14,10 +14,12 @@ include(Catch)
 
 add_executable(OpenEraTests
     ByteReaderTests.cpp
-    LoggerTests.cpp)
+    LoggerTests.cpp
+    PeReaderTests.cpp)
 
 target_link_libraries(OpenEraTests PRIVATE
     OpenEra::Core
+    OpenEra::Loader
     OpenEra::CompileOptions
     Catch2::Catch2WithMain)
 
