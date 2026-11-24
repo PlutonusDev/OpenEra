@@ -1,0 +1,91 @@
+# OpenEra clang-tidy configuration
+# Enforces the naming table and forbidden patterns from the style guide.
+# Requires clang-tidy 17 or newer (ships with Visual Studio 2022).
+---
+Checks: >
+  -*,
+  bugprone-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  misc-*,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-do-while,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -modernize-use-trailing-return-type,
+  -modernize-use-std-print,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-uppercase-literal-suffix
+
+# Matches /WX: every enabled check is an error.
+WarningsAsErrors: '*'
+
+# Only report diagnostics from project sources, never from SDK or third-party headers.
+HeaderFilterRegex: '.*[/\\](src|tests)[/\\].*'
+FormatStyle: file
+
+CheckOptions:
+  # --- Naming (CLAUDE.md section 3) ---------------------------------------
+  # Namespaces, types, enums: PascalCase
+  - { key: readability-identifier-naming.NamespaceCase,          value: CamelCase }
+  - { key: readability-identifier-naming.ClassCase,              value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,             value: CamelCase }
+  - { key: readability-identifier-naming.UnionCase,              value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase,               value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,       value: CamelCase }
+  - { key: readability-identifier-naming.TypeAliasCase,          value: CamelCase }
+  - { key: readability-identifier-naming.TypedefCase,            value: CamelCase }
+  - { key: readability-identifier-naming.ConceptCase,            value: CamelCase }
+  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase }
+
+  # Functions and methods: PascalCase (entry points keep their required names)
+  - { key: readability-identifier-naming.FunctionCase,           value: CamelCase }
+  - { key: readability-identifier-naming.FunctionIgnoredRegexp,  value: '^(main|wmain|WinMain|wWinMain|DllMain)$' }
+  - { key: readability-identifier-naming.MethodCase,             value: CamelCase }
+
+  # Locals and parameters: camelCase
+  - { key: readability-identifier-naming.VariableCase,           value: camelBack }
+  - { key: readability-identifier-naming.LocalVariableCase,      value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,          value: camelBack }
+
+  # Private / protected members: m_ + camelCase
+  - { key: readability-identifier-naming.PrivateMemberCase,      value: camelBack }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,    value: m_ }
+  - { key: readability-identifier-naming.ProtectedMemberCase,    value: camelBack }
+  - { key: readability-identifier-naming.ProtectedMemberPrefix,  value: m_ }
+
+  # Public struct fields (POD/ABI): PascalCase
+  - { key: readability-identifier-naming.PublicMemberCase,       value: CamelCase }
+
+  # Constants and constexpr: k + PascalCase
+  - { key: readability-identifier-naming.ConstexprVariableCase,   value: CamelCase }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix, value: k }
+  - { key: readability-identifier-naming.GlobalConstantCase,      value: CamelCase }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,    value: k }
+  - { key: readability-identifier-naming.StaticConstantCase,      value: CamelCase }
+  - { key: readability-identifier-naming.StaticConstantPrefix,    value: k }
+  - { key: readability-identifier-naming.ClassConstantCase,       value: CamelCase }
+  - { key: readability-identifier-naming.ClassConstantPrefix,     value: k }
+
+  # Macros: UPPER_SNAKE_CASE
+  - { key: readability-identifier-naming.MacroDefinitionCase,    value: UPPER_CASE }
+
+  # --- Other checks ---------------------------------------------------------
+  # Plain POD/ABI structs with only public fields are allowed.
+  - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: true }
+  - { key: cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: true }
+  # Ordinary small structs don't need all five special members spelled out.
+  - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor, value: true }
+  # Project macros (e.g. OPENERA_ASSERT) are allowed; constant macros are still flagged by macro-to-enum.
+  - { key: cppcoreguidelines-macro-usage.AllowedRegexp, value: '^OPENERA_[A-Z0-9_]+$' }
+  # `if (ptr)` and `if (!hr)`-style checks on pointers are fine.
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions, value: true }
+...
