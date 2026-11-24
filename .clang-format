@@ -1,0 +1,73 @@
+# OpenEra clang-format configuration
+# Microsoft-style layout (Allman braces, 4-space indent) for C++20.
+# Requires clang-format 17 or newer (ships with Visual Studio 2022).
+---
+Language: Cpp
+BasedOnStyle: Microsoft
+Standard: c++20
+
+# Layout
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+LineEnding: DeriveLF
+InsertNewlineAtEOF: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+# Braces: Allman (Microsoft)
+BreakBeforeBraces: Allman
+InsertBraces: true
+
+# Pointers and references bind to the type: `std::byte* data`, `const Foo& foo`
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+DerivePointerAlignment: false
+
+# Namespaces, access modifiers, templates
+NamespaceIndentation: None
+FixNamespaceComments: true
+CompactNamespaces: false
+AccessModifierOffset: -4
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: Never
+SpaceBeforeCpp11BracedList: false
+Cpp11BracedListStyle: true
+
+# Short constructs stay on their own lines
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: false
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: Consecutive
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Includes — order from CLAUDE.md:
+#   0. Corresponding header (main include, detected automatically)
+#   1. C++ standard library        <cstdint>, <span>
+#   2. Windows / DirectX / SDK     <Windows.h>, <d3d12.h>, <wrl/client.h>
+#   3. Project internal headers    "Core/Log.h"
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '$'
+IncludeCategories:
+  - Regex: '^<[a-z_]+>$'
+    Priority: 1
+  - Regex: '^<.+>$'
+    Priority: 2
+  - Regex: '^".+"$'
+    Priority: 3
+
+# Preprocessor
+IndentPPDirectives: AfterHash
+...
