@@ -1,0 +1,9 @@
+# Test-specific overrides on top of the root configuration.
+---
+InheritParentConfig: true
+
+# Catch2's REQUIRE aborts the test case on failure, which clang-tidy cannot see,
+# so `REQUIRE(value.has_value()); value->...` is reported as unchecked.
+Checks: >
+  -bugprone-unchecked-optional-access
+...
