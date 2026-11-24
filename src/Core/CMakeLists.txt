@@ -1,6 +1,8 @@
 add_library(OpenEraCore STATIC
     ByteReader.h
-    ByteReader.cpp)
+    ByteReader.cpp
+    Logger.h
+    Logger.cpp)
 add_library(OpenEra::Core ALIAS OpenEraCore)
 
 # Headers are included as "Core/ByteReader.h".
