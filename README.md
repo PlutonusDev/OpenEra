@@ -4,12 +4,12 @@
 
 **An open-source compatibility layer for running Xbox One and Xbox Series X|S titles natively on Windows.**
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Bdaubmzk8x)
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/openera)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](LICENSE)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 
-[**Join our Discord**](https://discord.gg/Bdaubmzk8x) · [API Coverage](#api-coverage) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
+[**Join our Discord**](https://discord.gg/openera) · [API Coverage](#api-coverage) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
 
 </div>
 
@@ -28,7 +28,7 @@ Development discussion, progress updates and help all happen on Discord.
 
 <div align="center">
 
-### [👉 Join the OpenEra Discord 👈](https://discord.gg/Bdaubmzk8x)
+### [👉 Join the OpenEra Discord 👈](https://discord.gg/openera)
 
 </div>
 
@@ -99,7 +99,7 @@ To build with Clang-CL instead, add `-DCMAKE_CXX_COMPILER=clang-cl` to the first
 
 ## Contributing
 
-Contributions are welcome. Before starting on something large, say hello on [Discord](https://discord.gg/Bdaubmzk8x) so work isn't duplicated.
+Contributions are welcome. Before starting on something large, say hello on [Discord](https://discord.gg/openera) so work isn't duplicated.
 
 All contributions must follow the clean-room policy. Only use public documentation, observable runtime behaviour, or compatibly licensed open-source projects (with attribution). Never submit leaked code, disassembled Microsoft code, SDK headers or keys.
 
