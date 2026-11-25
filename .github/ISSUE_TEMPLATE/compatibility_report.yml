@@ -1,0 +1,56 @@
+name: Compatibility report
+description: Report how a title behaves under OpenEra.
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Only report titles you legally own and dumped yourself. Never attach or link game files, dumps or keys.
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: Game name and region
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Xbox One (Era)
+        - Xbox Series X|S (GameCore)
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Furthest point reached
+      options:
+        - Does not load
+        - Loads, crashes before rendering
+        - Renders, crashes or hangs before menu
+        - Reaches menu
+        - In-game with major issues
+        - Playable
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: OpenEra commit or version
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, CPU, GPU and driver.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: OpenEra log output, including any unimplemented stub summary.
+      render: text

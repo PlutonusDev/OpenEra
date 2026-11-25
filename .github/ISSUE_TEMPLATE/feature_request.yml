@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a new capability or an improvement.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What are you trying to do, and what is missing?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Public references
+      description: Public documentation or observable behaviour this would be based on. OpenEra follows a strict clean-room policy, so leaked or proprietary material can't be used.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
