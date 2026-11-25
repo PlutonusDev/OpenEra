@@ -15,6 +15,7 @@ include(Catch)
 add_executable(OpenEraTests
     ByteReaderTests.cpp
     ImageMapperTests.cpp
+    ImportResolverTests.cpp
     LoggerTests.cpp
     PeReaderTests.cpp
     ShimModuleTests.cpp
@@ -27,5 +28,8 @@ target_link_libraries(OpenEraTests PRIVATE
     OpenEra::Kernel
     OpenEra::CompileOptions
     Catch2::Catch2WithMain)
+
+# Shared test helpers are included as "Support/...".
+target_include_directories(OpenEraTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 catch_discover_tests(OpenEraTests)

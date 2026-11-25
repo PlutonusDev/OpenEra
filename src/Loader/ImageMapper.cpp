@@ -192,6 +192,11 @@ MapResult MapImageImpl(std::span<const std::byte> file, const PeImage& image, Im
 }
 } // namespace
 
+MapError ProtectImage(const PeImage& image, ImageMemory& memory, Core::Logger& logger)
+{
+    return ApplyProtections(image, memory, logger);
+}
+
 PageProtection SectionProtection(uint32_t characteristics) noexcept
 {
     const bool execute = (characteristics & kSectionMemoryExecute) != 0;

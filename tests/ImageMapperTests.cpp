@@ -16,11 +16,14 @@
 #include "Loader/ImageMapper.h"
 #include "Loader/ImageMemory.h"
 #include "Loader/PeReader.h"
+#include "Support/FakeImageMemory.h"
 
 using namespace OpenEra::Loader;
 using OpenEra::Core::Logger;
 using OpenEra::Core::LogRecord;
 using OpenEra::Core::LogSink;
+using OpenEra::Tests::FakeAllocator;
+using OpenEra::Tests::ProtectCall;
 
 namespace
 {
@@ -97,78 +100,6 @@ struct TestImage
         std::ranges::fill(file.subspan(0x600, 0x200), kDataFill);
         std::ranges::fill(file.subspan(0x800, 0x200), kRdataFill);
         WriteU64(file, 0x610, kPreferredBase + 0x1000);
-    }
-};
-
-struct ProtectCall
-{
-    size_t Offset = 0;
-    size_t Size = 0;
-    PageProtection Protection = PageProtection::NoAccess;
-
-    bool operator==(const ProtectCall&) const = default;
-};
-
-class FakeMemory final : public ImageMemory
-{
-public:
-    FakeMemory(uint64_t base, size_t size, std::vector<ProtectCall>* calls, bool failProtect)
-        : m_base(base)
-        , m_bytes(size)
-        , m_calls(calls)
-        , m_failProtect(failProtect)
-    {
-    }
-
-    [[nodiscard]] uint64_t Base() const noexcept override { return m_base; }
-    [[nodiscard]] std::span<std::byte> Bytes() noexcept override { return m_bytes; }
-
-    [[nodiscard]] bool Protect(size_t offset, size_t size, PageProtection protection) noexcept override
-    {
-        try
-        {
-            m_calls->push_back({.Offset = offset, .Size = size, .Protection = protection});
-        }
-        catch (...)
-        {
-            return false;
-        }
-        return !m_failProtect;
-    }
-
-private:
-    uint64_t m_base;
-    std::vector<std::byte> m_bytes;
-    std::vector<ProtectCall>* m_calls;
-    bool m_failProtect;
-};
-
-class FakeAllocator final : public ImageAllocator
-{
-public:
-    std::optional<uint64_t> ForcedBase;
-    bool Fail = false;
-    bool FailProtect = false;
-    std::vector<ProtectCall> Calls;
-    uint64_t RequestedBase = 0;
-    size_t RequestedSize = 0;
-
-    [[nodiscard]] std::unique_ptr<ImageMemory> Allocate(uint64_t preferredBase, size_t size) noexcept override
-    {
-        RequestedBase = preferredBase;
-        RequestedSize = size;
-        if (Fail)
-        {
-            return nullptr;
-        }
-        try
-        {
-            return std::make_unique<FakeMemory>(ForcedBase.value_or(preferredBase), size, &Calls, FailProtect);
-        }
-        catch (...)
-        {
-            return nullptr;
-        }
     }
 };
 
