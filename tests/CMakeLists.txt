@@ -16,11 +16,13 @@ add_executable(OpenEraTests
     ByteReaderTests.cpp
     LoggerTests.cpp
     PeReaderTests.cpp
+    StubRegistryTests.cpp
     XvdReaderTests.cpp)
 
 target_link_libraries(OpenEraTests PRIVATE
     OpenEra::Core
     OpenEra::Loader
+    OpenEra::Kernel
     OpenEra::CompileOptions
     Catch2::Catch2WithMain)
 
