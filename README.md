@@ -1,6 +1,6 @@
 <div align="center">
 
-# OpenEra
+<img src="docs/images/banner.jpg" alt="OpenEra: Xbox-on-Windows Compatibility Layer" width="720">
 
 **An open-source compatibility layer for running Xbox One and Xbox Series X|S titles natively on Windows.**
 
@@ -54,7 +54,7 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Binary stream reader | `Core` | ✅ Done | Bounds-checked, non-throwing `ByteReader` used by every parser. |
 | Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
 | PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, data directories and import descriptors. |
-| XVD / XVC container parser | `Loader` | 🟡 In review | Header validation, section layout and XVC region table. Unencrypted only. |
+| XVD / XVC container parser | `Loader` | ✅ Done | Header validation, section layout and XVC region table. Unencrypted only. |
 | PE/DLL loader & import resolver | `Loader` | ⚪ Planned | Mapping images into memory and binding imports to shims. |
 | Unencrypted package loader | `Loader` | ⚪ Planned | Mounting XVD / XVC drive data as a host filesystem. |
 | Era / GameCore kernel thunks | `Kernel` | 🟡 In progress | NT syscall, threading and memory mapping shims. |
