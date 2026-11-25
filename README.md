@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 
-[**Join our Discord**](https://discord.gg/Bdaubmzk8x) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
+[**Join our Discord**](https://discord.gg/Bdaubmzk8x) · [API Coverage](#api-coverage) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
 
 </div>
 
@@ -31,6 +31,12 @@ Development discussion, progress updates and help all happen on Discord.
 ### [👉 Join the OpenEra Discord 👈](https://discord.gg/Bdaubmzk8x)
 
 </div>
+
+## API Coverage
+
+<a href="COMPATIBILITY.md"><img src="docs/compatibility/api-coverage.svg" alt="OpenEra API coverage" width="100%"></a>
+
+Each square is a public API function a title can call. See [COMPATIBILITY.md](COMPATIBILITY.md) for the full API matrix and feature status.
 
 ## Architecture
 
@@ -64,12 +70,6 @@ OpenEra is in **early development**. No commercial titles run yet.
 | First title booting to menu | Milestone | ⚪ Planned | The first end-to-end compatibility milestone. |
 
 **Legend:** ✅ Done · 🟡 In progress / in review · ⚪ Planned
-
-### API coverage
-
-<a href="COMPATIBILITY.md"><img src="docs/compatibility/api-coverage.svg" alt="OpenEra API coverage" width="100%"></a>
-
-Each square is a public API function a title can call. See [COMPATIBILITY.md](COMPATIBILITY.md) for the full API matrix and feature status.
 
 ## Building from Source
 
