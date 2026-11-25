@@ -15,7 +15,8 @@ include(Catch)
 add_executable(OpenEraTests
     ByteReaderTests.cpp
     LoggerTests.cpp
-    PeReaderTests.cpp)
+    PeReaderTests.cpp
+    XvdReaderTests.cpp)
 
 target_link_libraries(OpenEraTests PRIVATE
     OpenEra::Core
