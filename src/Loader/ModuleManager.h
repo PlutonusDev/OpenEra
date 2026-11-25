@@ -19,6 +19,7 @@
 #include "Loader/ImageMemory.h"
 #include "Loader/ImportResolver.h"
 #include "Loader/PeReader.h"
+#include "Loader/UnwindRegistration.h"
 
 namespace OpenEra::Core
 {
@@ -43,6 +44,7 @@ struct LoadedModule
     std::string Name; // File name it was loaded as.
     PeImage Pe;
     MappedImage Image;
+    UnwindTable Unwind; // Declared after Image, so it is unregistered first.
     std::optional<BoundImports> Imports;
     std::vector<size_t> Dependencies; // Title modules it imports from.
     std::unordered_map<std::string, size_t> ExportsByName;
@@ -52,8 +54,8 @@ struct LoadedModule
     [[nodiscard]] uint64_t Base() const noexcept { return Image.Base(); }
 };
 
-// Runs a module's start-up and shutdown (unwind registration, TLS callbacks,
-// DllMain: #14 and #15). The manager decides the order.
+// Runs a module's start-up and shutdown (TLS callbacks and DllMain: #15).
+// The manager decides the order.
 class ModuleInitializer
 {
 public:
@@ -102,6 +104,8 @@ public:
     [[nodiscard]] const LoadedModule* FindByHandle(uint64_t handle) const;
     [[nodiscard]] std::vector<std::string> AttachOrder() const;
     [[nodiscard]] size_t ModuleCount() const;
+    // Base of the title module containing `address`, or 0.
+    [[nodiscard]] uint64_t ImageBaseFor(uint64_t address) const;
 
     // Exports of loaded title modules, following forwarders.
     [[nodiscard]] std::optional<uint64_t> FindExport(std::string_view module, std::string_view symbol) override;
@@ -153,9 +157,13 @@ private:
     uint64_t m_mainHandle = 0;
 };
 
-// Registers a "kernel32.dll" shim module (aliases kernelbase and the
-// libraryloader API sets) with LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W},
-// GetProcAddress and FreeLibrary, backed by ModuleManager::Active(). Other
-// kernel32 functions fall through to host passthrough.
+// Registers the loader shims, backed by ModuleManager::Active():
+// - kernel32.dll (aliases kernelbase and the libraryloader API sets):
+//   LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W}, GetProcAddress,
+//   FreeLibrary and RtlPcToFileHeader.
+// - ntdll.dll (aliases the rtlsupport API sets): RtlPcToFileHeader.
+// - vcruntime140.dll: _CxxThrowException, which records the thrower's image
+//   base for title modules the OS loader doesn't know.
+// Other exports of these modules fall through to host passthrough.
 bool RegisterLoaderShims(Kernel::ShimRegistry& shims);
 } // namespace OpenEra::Loader

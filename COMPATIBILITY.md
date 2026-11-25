@@ -24,7 +24,7 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Loader | Import binding with recorded-stub fallback | ✅ Done | #13 |
 | Loader | Pass Win32 and C runtime imports through to host DLLs | ✅ Done | #47 |
 | Loader | Load and link a title's own DLLs; runtime `LoadLibrary` / `GetProcAddress` | ✅ Done | #48 |
-| Loader | Register x64 unwind data | ⚪ Planned | #14 |
+| Loader | Register x64 unwind data; C++ and structured exceptions in mapped images | ✅ Done | #14 |
 | Loader | TLS callbacks and entry point | ⚪ Planned | #15 |
 | App | Run an unpacked title folder from `MicrosoftGame.config` | ⚪ Planned | #50 |
 | App | `openera` command-line launcher | ⚪ Planned | #32 |

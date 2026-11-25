@@ -63,7 +63,7 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Binary stream reader | `Core` | ✅ Done | Bounds-checked, non-throwing `ByteReader` used by every parser. |
 | Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
 | PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, imports, exports, relocations, TLS, exception and delay-import directories. |
-| PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs. Unwind data and entry point next. |
+| PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs, and registers their unwind data so exceptions work. Entry points next. |
 | Run an unpacked title folder | `App` | ⚪ Planned | Read `MicrosoftGame.config` and start the title. |
 | Console system modules | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; module mapping and API shims next. |
 | Direct3D 12.x translation | `Graphics` | ⚪ Planned | COM wrappers, command list translation and presentation. |

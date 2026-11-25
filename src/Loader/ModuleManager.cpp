@@ -231,12 +231,19 @@ ModuleManager::MapOutcome ModuleManager::MapTree(std::string_view name, size_t d
         m_logger.get().Warn("Modules: mapping {} failed ({})", fileName, ToString(mapped.Error));
         return {.Error = ModuleError::MapFailed, .Index = 0};
     }
+    auto unwind = RegisterUnwindTable(*parsed.Image, *mapped.Image->Memory);
+    if (!unwind)
+    {
+        m_logger.get().Warn("Modules: registering unwind data for {} failed", fileName);
+        return {.Error = ModuleError::MapFailed, .Index = 0};
+    }
 
     const size_t index = m_modules.size();
     auto& module = m_modules.emplace_back();
     module.Name = fileName;
     module.Pe = std::move(*parsed.Image);
     module.Image = std::move(*mapped.Image);
+    module.Unwind = std::move(*unwind);
     for (size_t exportIndex = 0; exportIndex < module.Pe.Exports.size(); ++exportIndex)
     {
         const auto& entry = module.Pe.Exports.at(exportIndex);
@@ -367,6 +374,19 @@ size_t ModuleManager::ModuleCount() const
 {
     const std::scoped_lock lock(m_mutex);
     return m_modules.size();
+}
+
+uint64_t ModuleManager::ImageBaseFor(uint64_t address) const
+{
+    const std::scoped_lock lock(m_mutex);
+    const auto it =
+        std::ranges::find_if(m_modules,
+                             [address](const LoadedModule& module) noexcept
+                             {
+                                 const uint64_t base = module.Base();
+                                 return address >= base && address - base < module.Pe.OptionalHeader.SizeOfImage;
+                             });
+    return it == m_modules.end() ? 0 : it->Base();
 }
 
 std::optional<uint64_t> ModuleManager::ExportAddress(size_t module, size_t exportIndex, size_t depth)

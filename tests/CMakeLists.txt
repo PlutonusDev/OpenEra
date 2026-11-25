@@ -14,6 +14,7 @@ include(Catch)
 
 add_executable(OpenEraTests
     ByteReaderTests.cpp
+    ExceptionTests.cpp
     HostModulesTests.cpp
     ImageMapperTests.cpp
     ImportResolverTests.cpp
@@ -33,5 +34,14 @@ target_link_libraries(OpenEraTests PRIVATE
 
 # Shared test helpers are included as "Support/...".
 target_include_directories(OpenEraTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Test image mapped by OpenEra, not the OS loader. It uses the release DLL C
+# runtime, which host passthrough allows.
+add_library(OpenEraEhImage SHARED Fixtures/EhImage.cpp)
+set_target_properties(OpenEraEhImage PROPERTIES
+    OUTPUT_NAME EhImage
+    MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+add_dependencies(OpenEraTests OpenEraEhImage)
+target_compile_definitions(OpenEraTests PRIVATE OPENERA_EH_IMAGE_DIR="$<TARGET_FILE_DIR:OpenEraEhImage>")
 
 catch_discover_tests(OpenEraTests)
