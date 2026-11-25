@@ -2,7 +2,9 @@
 
 What OpenEra can do today, subsystem by subsystem, and how much of the public API surface titles depend on is implemented.
 
-OpenEra is in early development: **no titles run yet**. The loader can parse, map and link a title's executable, but the system APIs it calls are not implemented, so every call lands in a recorded stub.
+OpenEra is in early development: **no titles run yet**. The first target is Xbox Series X|S (GDK) titles, run from an unpacked title folder you own. Xbox One (Era) titles come later.
+
+The loader can already load a title and its own DLLs and link them, binding plain Win32 and C runtime imports to the host's Windows DLLs. Console system modules, graphics, audio and input aren't implemented yet, so those calls land in recorded stubs.
 
 ## API coverage
 
@@ -10,7 +12,7 @@ OpenEra is in early development: **no titles run yet**. The loader can parse, ma
 
 Each square is one function.
 
-The tracked functions are the public APIs needed for milestone [M1: First title boots to menu](https://github.com/PlutonusDev/OpenEra/milestone/1), taken from public documentation (Microsoft Learn: Microsoft Game Development Kit, GameInput, Direct3D 12, XAudio2 and Win32 references). The list will be refined from the unimplemented-call summaries of real runs.
+The tracked functions are the public APIs needed for milestone [M1: Series X|S title boots to menu](https://github.com/PlutonusDev/OpenEra/milestone/1), taken from public documentation (Microsoft Learn: Microsoft Game Development Kit, GameInput, Direct3D 12, XAudio2 and Win32 references). The list will be refined from the unimplemented-call summaries of real runs.
 
 ## Feature status
 
@@ -20,30 +22,37 @@ The tracked functions are the public APIs needed for milestone [M1: First title 
 | Loader | Relocation, TLS, exception and delay-import directories | ✅ Done | #12 |
 | Loader | Map images into memory (relocate, protect) | ✅ Done | #11 |
 | Loader | Import binding with recorded-stub fallback | ✅ Done | #13 |
+| Loader | Pass Win32 and C runtime imports through to host DLLs | ✅ Done | #47 |
+| Loader | Load and link a title's own DLLs; runtime `LoadLibrary` / `GetProcAddress` | ✅ Done | #48 |
 | Loader | Register x64 unwind data | ⚪ Planned | #14 |
 | Loader | TLS callbacks and entry point | ⚪ Planned | #15 |
-| Loader | XVD / XVC header and region table | ✅ Done | #5 |
-| Loader | Read unencrypted fixed XVD volumes | ⚪ Planned | #16 |
-| Loader | Dynamic XVD volumes | ⚪ Planned | #17 |
-| Loader | Expose drive contents as a host directory | ⚪ Planned | #18 |
-| Loader | Encrypted packages | ❌ Out of scope | Clean-room policy: no keys |
+| App | Run an unpacked title folder from `MicrosoftGame.config` | ⚪ Planned | #50 |
+| App | `openera` command-line launcher | ⚪ Planned | #32 |
 | Kernel | Unimplemented-call registry | ✅ Done | #8 |
 | Kernel | Shim module framework and exception guards | ✅ Done | #21 |
-| Kernel | Package path redirection | ⚪ Planned | #22 |
+| Kernel | Map console system modules onto shims and host DLLs | ⚪ Planned | #53 |
+| Kernel | Path redirection | ⚪ Planned | #22 |
+| Kernel | Copy-on-write file layer over the title folder | ⚪ Planned | #54 |
+| Kernel | DirectStorage | ⚪ Planned | #56 |
 | Kernel | Memory management | ⚪ Planned | #23 |
 | Kernel | Threading, synchronization and timing | ⚪ Planned | #24 |
 | Kernel | XGameRuntime and XTaskQueue | ⚪ Planned | #25 |
 | Kernel | XUser and system services | ⚪ Planned | #26 |
 | Graphics | D3D12.x device and COM wrappers | ⚪ Planned | #27 |
 | Graphics | Command list and resource translation | ⚪ Planned | #28 |
+| Graphics | RDNA2 shader recompiler (to DXIL) | ⚪ Planned | #55 |
+| Graphics | Console texture layouts | ⚪ Planned | #51 |
 | Graphics | Presentation to a desktop window | ⚪ Planned | #29 |
 | Input | GameInput gamepad mapping | ⚪ Planned | #30 |
 | Audio | XMA2 decoding and output | ⚪ Planned | #31 |
-| App | `openera` command-line launcher | ⚪ Planned | #32 |
+| Packages | XVD / XVC header and region table | ✅ Done | #5 |
+| Packages | Read unencrypted XVD volumes (after M1) | ⚪ Planned | #16, #17, #18 |
+| Packages | Encrypted packages | ❌ Out of scope | Clean-room policy: no keys, no decryption |
+| Platform | Xbox One (Era) titles | ⚪ Later | After Series X\|S titles work |
 
 ## Titles
 
-No titles have been tested yet. When OpenEra can run something, results will be collected through the [compatibility report](https://github.com/PlutonusDev/OpenEra/issues/new?template=compatibility_report.yml) issue form. Only report titles you own and dumped yourself, and never attach game files.
+No titles have been tested yet. When OpenEra can run something, results will be collected through the [compatibility report](https://github.com/PlutonusDev/OpenEra/issues/new?template=compatibility_report.yml) issue form. Only report titles you own, and never attach game files.
 
 ## API matrix
 

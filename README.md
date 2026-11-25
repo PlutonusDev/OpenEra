@@ -2,7 +2,7 @@
 
 <img src="docs/images/banner.jpg" alt="OpenEra: Xbox-on-Windows Compatibility Layer" width="720">
 
-**An open-source compatibility layer for running Xbox One and Xbox Series X|S titles natively on Windows.**
+**An open-source compatibility layer for running Xbox Series X|S titles natively on Windows.**
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/openera)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](LICENSE)
@@ -15,12 +15,14 @@
 
 ---
 
-OpenEra is an experimental translation layer and runtime environment for Xbox titles built for **Era** (Xbox One) and **GameCore** (Xbox Series X|S).
+OpenEra is an experimental translation layer and runtime environment for Xbox titles. Its first target is **GameCore**: Xbox Series X|S titles built with the GDK. **Era** (Xbox One) titles are a later goal.
 
-Modern Xbox consoles run a customized Windows NT kernel and Direct3D 12 runtime under a hypervisor, on the same x86-64 architecture as a desktop PC. So OpenEra doesn't emulate the CPU. It translates APIs, shims syscalls and abstracts the hardware.
+Modern Xbox consoles run a customized Windows NT kernel and Direct3D 12 runtime under a hypervisor, on the same x86-64 architecture as a desktop PC. So OpenEra doesn't emulate the CPU. The title's code runs natively. OpenEra loads it with its own PE loader, reimplements the console system modules it calls, recompiles its GPU shaders for desktop Direct3D 12, and passes plain Win32 and C runtime calls through to Windows.
+
+OpenEra runs an **unpacked title folder** you own (the folder containing `MicrosoftGame.config`). It never decrypts or unpacks game packages.
 
 > [!IMPORTANT]
-> OpenEra is an educational and interoperability research project developed under a strict clean-room policy. It contains no Microsoft binaries, encryption keys, SDK headers or game assets. You must supply your own legally obtained dumps.
+> OpenEra is an educational and interoperability research project developed under a strict clean-room policy. It contains no Microsoft binaries, encryption keys, SDK headers or game assets. You supply your own unpacked titles.
 
 ## 💬 Community
 
@@ -40,13 +42,14 @@ Each square is a public API function a title can call. See [COMPATIBILITY.md](CO
 
 ## Architecture
 
-OpenEra bridges the differences between the Era / GameCore environments and standard Windows APIs:
+OpenEra bridges the differences between the GameCore environment and standard Windows APIs:
 
 | Subsystem | Responsibility |
 | :--- | :--- |
-| **Kernel & Syscall Shim** | Translates Xbox-specific NT kernel calls, memory allocation flags and threading primitives to their desktop NT equivalents. |
-| **Graphics (D3D12.x → D3D12)** | Maps Xbox Direct3D 12 extensions, custom command list formats and ESRAM / memory aliasing onto desktop Direct3D 12. |
-| **Loader & Storage** | Parses PE images and XVD / XVC containers, resolves imports and redirects package mounts to the host filesystem. |
+| **Loader** | Loads the title's executable and its own DLLs with OpenEra's PE loader, and binds imports to title modules, OpenEra shims or the host's Windows DLLs. Anything unimplemented becomes a recorded stub. |
+| **Kernel & System Modules** | Reimplements the console system modules titles import, mapping compatible functions onto desktop Windows and shimming the rest: memory, threading, files and the Gaming Runtime. |
+| **Graphics (D3D12.x → D3D12)** | Maps Xbox Direct3D 12 extensions onto desktop Direct3D 12, recompiles RDNA2 shader code to DXIL and detiles console texture layouts. |
+| **Storage** | Redirects title paths to the title folder through a copy-on-write layer, so the original files are never modified, and handles DirectStorage requests. |
 | **Audio** | Redirects XMA2 hardware audio decoding to a host decoder. |
 | **Input & System Services** | Maps Xbox Gaming Runtime Services and controller protocols to Windows `Gaming.Input` / XInput. |
 
@@ -60,14 +63,17 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Binary stream reader | `Core` | ✅ Done | Bounds-checked, non-throwing `ByteReader` used by every parser. |
 | Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
 | PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, imports, exports, relocations, TLS, exception and delay-import directories. |
-| XVD / XVC container parser | `Loader` | ✅ Done | Header validation, section layout and XVC region table. Unencrypted only. |
-| PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Images map, relocate and link against shims; unresolved imports become recorded stubs. Unwind data and entry point next. |
-| Unencrypted package loader | `Loader` | ⚪ Planned | Mounting XVD / XVC drive data as a host filesystem. |
-| Era / GameCore kernel thunks | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; API shims next. |
-| Direct3D 12.x translation | `Graphics` | ⚪ Planned | `d3d12_x` COM wrappers and command buffer translation. |
+| PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs. Unwind data and entry point next. |
+| Run an unpacked title folder | `App` | ⚪ Planned | Read `MicrosoftGame.config` and start the title. |
+| Console system modules | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; module mapping and API shims next. |
+| Direct3D 12.x translation | `Graphics` | ⚪ Planned | COM wrappers, command list translation and presentation. |
+| Shader recompiler | `Graphics` | ⚪ Planned | RDNA2 shader code to DXIL. |
+| Storage | `Kernel` | ⚪ Planned | Path redirection, copy-on-write file layer and DirectStorage. |
+| Controller input | `Input` | ⚪ Planned | GameInput gamepad mapping. |
 | Audio subsystem | `Audio` | ⚪ Planned | XMA2 decoding and audio endpoint mapping. |
-| Controller input | `Input` | ⚪ Planned | Gamepad mapping to `Gaming.Input` / XInput. |
-| First title booting to menu | Milestone | ⚪ Planned | The first end-to-end compatibility milestone. |
+| XVD / XVC container parser | `Loader` | ✅ Done | Header validation, section layout and XVC region table. Unencrypted only; not needed for M1. |
+| First Series X\|S title booting to menu | Milestone | ⚪ Planned | [M1](https://github.com/PlutonusDev/OpenEra/milestone/1): the first end-to-end compatibility milestone. |
+| Xbox One (Era) titles | Later | ⚪ Planned | After Series X\|S titles work. |
 
 **Legend:** ✅ Done · 🟡 In progress / in review · ⚪ Planned
 
