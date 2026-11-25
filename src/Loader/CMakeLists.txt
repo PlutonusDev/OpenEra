@@ -8,7 +8,12 @@ add_library(OpenEraLoader STATIC
     ImageMapper.h
     ImageMapper.cpp
     ImportResolver.h
-    ImportResolver.cpp)
+    ImportResolver.cpp
+    HostModules.h
+    HostModules.cpp
+    ModuleManager.h
+    ModuleManager.cpp
+    LoaderShims.cpp)
 add_library(OpenEra::Loader ALIAS OpenEraLoader)
 
 # Core is public: it provides the shared include root ("Loader/PeReader.h").

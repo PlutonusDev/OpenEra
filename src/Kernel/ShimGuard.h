@@ -31,6 +31,7 @@ constexpr NtStatus kStatusNoMemory = std::bit_cast<NtStatus>(0xC000'0017U);
 
 // Logs an exception that reached a shim boundary.
 void ReportShimException(std::string_view shimName, std::string_view what) noexcept;
+void ReportShimException(std::string_view shimName, const std::exception& exception) noexcept;
 
 // Records a call into a shim that only partly implements its API.
 void ReportPartialShim(StubKind kind, std::string_view module, std::string_view symbol, std::string_view note) noexcept;
@@ -51,7 +52,7 @@ template <typename Result, typename Body>
     }
     catch (const std::exception& exception)
     {
-        ReportShimException(shimName, exception.what());
+        ReportShimException(shimName, exception);
         return onError;
     }
     catch (...)
