@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 
-[**Join our Discord**](https://discord.gg/Bdaubmzk8x) · [Architecture](#architecture) · [Project Status](#project-status) · [Building](#building-from-source)
+[**Join our Discord**](https://discord.gg/Bdaubmzk8x) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
 
 </div>
 
@@ -53,17 +53,23 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Build system & CI tooling | `CMake` | ✅ Done | C++20, `/W4 /WX`, MSVC + Clang-CL, C++ Core Check, clang-format / clang-tidy, Catch2 tests. |
 | Binary stream reader | `Core` | ✅ Done | Bounds-checked, non-throwing `ByteReader` used by every parser. |
 | Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
-| PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, data directories and import descriptors. |
+| PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, imports, exports, relocations, TLS, exception and delay-import directories. |
 | XVD / XVC container parser | `Loader` | ✅ Done | Header validation, section layout and XVC region table. Unencrypted only. |
-| PE/DLL loader & import resolver | `Loader` | ⚪ Planned | Mapping images into memory and binding imports to shims. |
+| PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Images map, relocate and link against shims; unresolved imports become recorded stubs. Unwind data and entry point next. |
 | Unencrypted package loader | `Loader` | ⚪ Planned | Mounting XVD / XVC drive data as a host filesystem. |
-| Era / GameCore kernel thunks | `Kernel` | 🟡 In progress | NT syscall, threading and memory mapping shims. |
+| Era / GameCore kernel thunks | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; API shims next. |
 | Direct3D 12.x translation | `Graphics` | ⚪ Planned | `d3d12_x` COM wrappers and command buffer translation. |
 | Audio subsystem | `Audio` | ⚪ Planned | XMA2 decoding and audio endpoint mapping. |
 | Controller input | `Input` | ⚪ Planned | Gamepad mapping to `Gaming.Input` / XInput. |
 | First title booting to menu | Milestone | ⚪ Planned | The first end-to-end compatibility milestone. |
 
 **Legend:** ✅ Done · 🟡 In progress / in review · ⚪ Planned
+
+### API coverage
+
+<a href="COMPATIBILITY.md"><img src="docs/compatibility/api-coverage.svg" alt="OpenEra API coverage" width="100%"></a>
+
+Each square is a public API function a title can call. See [COMPATIBILITY.md](COMPATIBILITY.md) for the full API matrix and feature status.
 
 ## Building from Source
 

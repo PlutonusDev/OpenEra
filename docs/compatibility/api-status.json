@@ -1,0 +1,301 @@
+{
+  "categories": [
+    {
+      "name": "GDK runtime",
+      "modules": [
+        {
+          "name": "XGameRuntime",
+          "functions": {
+            "XGameRuntimeInitialize": "missing",
+            "XGameRuntimeUninitialize": "missing",
+            "XGameRuntimeIsFeatureAvailable": "missing",
+            "XGameGetXboxTitleId": "missing",
+            "XSystemGetDeviceType": "missing",
+            "XSystemGetConsoleId": "missing",
+            "XSystemGetAppSpecificDeviceId": "missing",
+            "XSystemGetXboxLiveSandboxId": "missing",
+            "XPackageGetCurrentProcessPackageIdentifier": "missing",
+            "XLaunchUri": "missing"
+          }
+        },
+        {
+          "name": "XTaskQueue",
+          "functions": {
+            "XTaskQueueCreate": "missing",
+            "XTaskQueueCreateComposite": "missing",
+            "XTaskQueueGetPort": "missing",
+            "XTaskQueueDuplicateHandle": "missing",
+            "XTaskQueueDispatch": "missing",
+            "XTaskQueueCloseHandle": "missing",
+            "XTaskQueueTerminate": "missing",
+            "XTaskQueueSubmitCallback": "missing",
+            "XTaskQueueSubmitDelayedCallback": "missing",
+            "XTaskQueueRegisterWaiter": "missing",
+            "XTaskQueueUnregisterWaiter": "missing",
+            "XTaskQueueRegisterMonitor": "missing",
+            "XTaskQueueUnregisterMonitor": "missing",
+            "XTaskQueueGetCurrentProcessTaskQueue": "missing",
+            "XTaskQueueSetCurrentProcessTaskQueue": "missing"
+          }
+        },
+        {
+          "name": "XAsync",
+          "functions": {
+            "XAsyncBegin": "missing",
+            "XAsyncComplete": "missing",
+            "XAsyncGetStatus": "missing",
+            "XAsyncGetResultSize": "missing",
+            "XAsyncGetResult": "missing",
+            "XAsyncCancel": "missing",
+            "XAsyncRun": "missing",
+            "XAsyncSchedule": "missing"
+          }
+        },
+        {
+          "name": "XUser",
+          "functions": {
+            "XUserAddAsync": "missing",
+            "XUserAddResult": "missing",
+            "XUserDuplicateHandle": "missing",
+            "XUserCloseHandle": "missing",
+            "XUserGetId": "missing",
+            "XUserGetLocalId": "missing",
+            "XUserGetGamertag": "missing",
+            "XUserGetState": "missing",
+            "XUserGetIsGuest": "missing",
+            "XUserGetAgeGroup": "missing",
+            "XUserCheckPrivilege": "missing",
+            "XUserRegisterForChangeEvent": "missing",
+            "XUserUnregisterForChangeEvent": "missing",
+            "XUserGetGamerPictureAsync": "missing",
+            "XUserGetGamerPictureResultSize": "missing",
+            "XUserGetGamerPictureResult": "missing"
+          }
+        },
+        {
+          "name": "XGameSave",
+          "functions": {
+            "XGameSaveInitializeProvider": "missing",
+            "XGameSaveInitializeProviderAsync": "missing",
+            "XGameSaveInitializeProviderResult": "missing",
+            "XGameSaveCloseProvider": "missing",
+            "XGameSaveGetRemainingQuota": "missing",
+            "XGameSaveCreateContainer": "missing",
+            "XGameSaveCloseContainer": "missing",
+            "XGameSaveEnumerateContainerInfo": "missing",
+            "XGameSaveCreateUpdate": "missing",
+            "XGameSaveSubmitBlobWrite": "missing",
+            "XGameSaveSubmitUpdate": "missing",
+            "XGameSaveCloseUpdate": "missing",
+            "XGameSaveReadBlobData": "missing"
+          }
+        },
+        {
+          "name": "XNetworking",
+          "functions": {
+            "XNetworkingGetConnectivityHint": "missing",
+            "XNetworkingRegisterConnectivityHintChanged": "missing",
+            "XNetworkingUnregisterConnectivityHintChanged": "missing"
+          }
+        },
+        {
+          "name": "XMem / XThread",
+          "functions": {
+            "XMemAllocDefault": "missing",
+            "XMemFreeDefault": "missing",
+            "XMemSetAllocationHooks": "missing",
+            "XThreadIsTimeSensitive": "missing",
+            "XThreadSetTimeSensitive": "missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Windows system",
+      "modules": [
+        {
+          "name": "Files",
+          "functions": {
+            "CreateFileW": "missing",
+            "ReadFile": "missing",
+            "WriteFile": "missing",
+            "CloseHandle": "missing",
+            "GetFileSizeEx": "missing",
+            "SetFilePointerEx": "missing",
+            "GetFileAttributesW": "missing",
+            "FindFirstFileW": "missing",
+            "FindNextFileW": "missing",
+            "FindClose": "missing",
+            "CreateDirectoryW": "missing",
+            "DeleteFileW": "missing"
+          }
+        },
+        {
+          "name": "Memory",
+          "functions": {
+            "VirtualAlloc": "missing",
+            "VirtualFree": "missing",
+            "VirtualProtect": "missing",
+            "VirtualQuery": "missing",
+            "HeapAlloc": "missing",
+            "HeapFree": "missing",
+            "GetProcessHeap": "missing"
+          }
+        },
+        {
+          "name": "Threads and TLS",
+          "functions": {
+            "CreateThread": "missing",
+            "ExitThread": "missing",
+            "GetCurrentThreadId": "missing",
+            "SetThreadPriority": "missing",
+            "SetThreadAffinityMask": "missing",
+            "SetThreadDescription": "missing",
+            "Sleep": "missing",
+            "SleepEx": "missing",
+            "SwitchToThread": "missing",
+            "TlsAlloc": "missing",
+            "TlsGetValue": "missing",
+            "TlsSetValue": "missing",
+            "TlsFree": "missing"
+          }
+        },
+        {
+          "name": "Synchronization",
+          "functions": {
+            "InitializeCriticalSection": "missing",
+            "EnterCriticalSection": "missing",
+            "LeaveCriticalSection": "missing",
+            "DeleteCriticalSection": "missing",
+            "InitializeSRWLock": "missing",
+            "AcquireSRWLockExclusive": "missing",
+            "ReleaseSRWLockExclusive": "missing",
+            "CreateEventW": "missing",
+            "SetEvent": "missing",
+            "ResetEvent": "missing",
+            "WaitForSingleObject": "missing",
+            "WaitForMultipleObjects": "missing"
+          }
+        },
+        {
+          "name": "Time and process",
+          "functions": {
+            "QueryPerformanceCounter": "missing",
+            "QueryPerformanceFrequency": "missing",
+            "GetSystemTimeAsFileTime": "missing",
+            "GetTickCount64": "missing",
+            "GetSystemInfo": "missing",
+            "GetLastError": "missing",
+            "SetLastError": "missing",
+            "OutputDebugStringW": "missing",
+            "GetModuleHandleW": "missing",
+            "GetProcAddress": "missing",
+            "LoadLibraryExW": "missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct3D 12",
+      "modules": [
+        {
+          "name": "ID3D12Device",
+          "functions": {
+            "CreateCommandQueue": "missing",
+            "CreateCommandAllocator": "missing",
+            "CreateCommandList": "missing",
+            "CreateGraphicsPipelineState": "missing",
+            "CreateComputePipelineState": "missing",
+            "CreateRootSignature": "missing",
+            "CreateDescriptorHeap": "missing",
+            "GetDescriptorHandleIncrementSize": "missing",
+            "CreateConstantBufferView": "missing",
+            "CreateShaderResourceView": "missing",
+            "CreateUnorderedAccessView": "missing",
+            "CreateRenderTargetView": "missing",
+            "CreateDepthStencilView": "missing",
+            "CreateSampler": "missing",
+            "CreateCommittedResource": "missing",
+            "CreateHeap": "missing",
+            "CreatePlacedResource": "missing",
+            "CreateFence": "missing"
+          }
+        },
+        {
+          "name": "ID3D12GraphicsCommandList",
+          "functions": {
+            "Close": "missing",
+            "Reset": "missing",
+            "DrawInstanced": "missing",
+            "DrawIndexedInstanced": "missing",
+            "Dispatch": "missing",
+            "ExecuteIndirect": "missing",
+            "CopyBufferRegion": "missing",
+            "CopyTextureRegion": "missing",
+            "ResourceBarrier": "missing",
+            "SetPipelineState": "missing",
+            "SetGraphicsRootSignature": "missing",
+            "SetComputeRootSignature": "missing",
+            "SetDescriptorHeaps": "missing",
+            "SetGraphicsRootDescriptorTable": "missing",
+            "SetGraphicsRoot32BitConstants": "missing",
+            "IASetPrimitiveTopology": "missing",
+            "IASetVertexBuffers": "missing",
+            "IASetIndexBuffer": "missing",
+            "RSSetViewports": "missing",
+            "RSSetScissorRects": "missing",
+            "OMSetRenderTargets": "missing",
+            "ClearRenderTargetView": "missing",
+            "ClearDepthStencilView": "missing"
+          }
+        },
+        {
+          "name": "ID3D12CommandQueue",
+          "functions": {
+            "ExecuteCommandLists": "missing",
+            "Signal": "missing",
+            "Wait": "missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Input and audio",
+      "modules": [
+        {
+          "name": "GameInput",
+          "functions": {
+            "GameInputCreate": "missing",
+            "IGameInput::GetCurrentReading": "missing",
+            "IGameInput::GetNextReading": "missing",
+            "IGameInput::GetPreviousReading": "missing",
+            "IGameInput::RegisterDeviceCallback": "missing",
+            "IGameInput::UnregisterCallback": "missing",
+            "IGameInput::FindDeviceFromId": "missing",
+            "IGameInputReading::GetGamepadState": "missing",
+            "IGameInputReading::GetTimestamp": "missing",
+            "IGameInputReading::GetDevice": "missing",
+            "IGameInputDevice::GetDeviceInfo": "missing",
+            "IGameInputDevice::SetRumbleState": "missing"
+          }
+        },
+        {
+          "name": "XAudio2",
+          "functions": {
+            "XAudio2Create": "missing",
+            "IXAudio2::CreateMasteringVoice": "missing",
+            "IXAudio2::CreateSourceVoice": "missing",
+            "IXAudio2::CreateSubmixVoice": "missing",
+            "IXAudio2::StartEngine": "missing",
+            "IXAudio2::StopEngine": "missing",
+            "IXAudio2SourceVoice::SubmitSourceBuffer": "missing",
+            "IXAudio2SourceVoice::Start": "missing",
+            "IXAudio2SourceVoice::Stop": "missing",
+            "IXAudio2SourceVoice::FlushSourceBuffers": "missing",
+            "IXAudio2Voice::SetVolume": "missing"
+          }
+        }
+      ]
+    }
+  ]
+}
