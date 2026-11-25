@@ -15,4 +15,8 @@ Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
 Enter-VsDevShell -VsInstallPath $vs -DevCmdArguments '-arch=x64 -host_arch=x64' -SkipAutomaticLocation | Out-Null
 
 # Appended, so CMake still finds cl.exe first.
-$env:PATH = "$env:PATH;$vs\VC\Tools\Llvm\x64\bin"
+$VsLlvmBin = "$vs\VC\Tools\Llvm\x64\bin"
+$env:PATH = "$env:PATH;$VsLlvmBin"
+
+# Visual Studio's own clang-cl; a standalone LLVM earlier on PATH may be too old for this STL.
+$VsClangCl = Join-Path $VsLlvmBin 'clang-cl.exe'

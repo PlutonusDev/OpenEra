@@ -32,8 +32,9 @@ jobs:
         shell: pwsh
         run: |
           . .github/scripts/Enter-VsDevShell.ps1
-          & ${{ matrix.compiler }} --version 2>&1 | Select-Object -First 1
-          $output = cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} 2>&1
+          $compiler = if ('${{ matrix.compiler }}' -eq 'clang-cl') { $VsClangCl } else { 'cl' }
+          & $compiler --version 2>&1 | Select-Object -First 1
+          $output = cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_CXX_COMPILER=$compiler" 2>&1
           $output
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ('${{ matrix.compiler }}' -eq 'cl' -and -not ($output -match 'C\+\+ Core Check: enabled'))
@@ -82,7 +83,7 @@ jobs:
         run: |
           $tidy = (Get-Command clang-tidy).Source
           . .github/scripts/Enter-VsDevShell.ps1
-          cmake -B build-tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang-cl -DOPENERA_ENABLE_CORE_CHECK=OFF
+          cmake -B build-tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_CXX_COMPILER=$VsClangCl" -DOPENERA_ENABLE_CORE_CHECK=OFF
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $failed = 0
           foreach ($file in git ls-files 'src/*.cpp' 'tests/*.cpp')
