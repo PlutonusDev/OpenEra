@@ -83,9 +83,18 @@ struct PendingStub
     const StubEntry* Entry = nullptr;
 };
 
+std::optional<uint64_t> FindIn(SymbolSource* source, std::string_view module, const PeImportEntry& entry)
+{
+    if (source == nullptr)
+    {
+        return std::nullopt;
+    }
+    return entry.Ordinal ? source->FindExport(module, *entry.Ordinal) : source->FindExport(module, entry.Name);
+}
+
 void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRegistry& shims,
-                Kernel::StubRegistry& stubs, BoundImports& bound, std::vector<PendingStub>& pending,
-                std::vector<uint64_t>& slots)
+                Kernel::StubRegistry& stubs, const ImportSources& sources, BoundImports& bound,
+                std::vector<PendingStub>& pending, std::vector<uint64_t>& slots)
 {
     const auto* shimModule = shims.FindModule(module.DllName);
     const StubKind kind = shimModule != nullptr ? shimModule->Kind() : StubKind::Win32Import;
@@ -97,18 +106,28 @@ void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRe
                               .Symbol = entry.Name,
                               .Ordinal = entry.Ordinal,
                               .Address = 0,
-                              .Stubbed = false,
+                              .Source = ImportSource::Stub,
                               .Delayed = delayed};
 
-        const auto resolution =
+        const auto shim =
             entry.Ordinal ? shims.Resolve(module.DllName, *entry.Ordinal) : shims.Resolve(module.DllName, entry.Name);
-        if (resolution)
+        if (const auto title = FindIn(sources.TitleModules, module.DllName, entry))
         {
-            binding.Address = std::bit_cast<uint64_t>(resolution->Export->Proc);
+            binding.Address = *title;
+            binding.Source = ImportSource::TitleModule;
+        }
+        else if (shim)
+        {
+            binding.Address = std::bit_cast<uint64_t>(shim->Export->Proc);
+            binding.Source = ImportSource::Shim;
+        }
+        else if (const auto host = FindIn(sources.Host, module.DllName, entry))
+        {
+            binding.Address = *host;
+            binding.Source = ImportSource::Host;
         }
         else
         {
-            binding.Stubbed = true;
             const auto& stub = bound.Stubs->Entries.emplace_back(StubEntry{.Kind = kind,
                                                                            .Module = module.DllName,
                                                                            .Symbol = entry.Name,
@@ -159,7 +178,8 @@ ResolveError GenerateStubs(BoundImports& bound, const std::vector<PendingStub>& 
 }
 
 ResolveResult ResolveImportsImpl(const MappedImage& image, const PeImage& pe, const Kernel::ShimRegistry& shims,
-                                 Kernel::StubRegistry& stubs, ImageAllocator& stubAllocator, Logger& logger)
+                                 Kernel::StubRegistry& stubs, ImageAllocator& stubAllocator, Logger& logger,
+                                 const ImportSources& sources)
 {
     if (!image.Memory)
     {
@@ -173,11 +193,11 @@ ResolveResult ResolveImportsImpl(const MappedImage& image, const PeImage& pe, co
     std::vector<uint64_t> slots; // IAT slot RVA for each binding.
     for (const auto& module : pe.Imports)
     {
-        BindModule(module, false, shims, stubs, bound, pending, slots);
+        BindModule(module, false, shims, stubs, sources, bound, pending, slots);
     }
     for (const auto& module : pe.DelayImports)
     {
-        BindModule(module, true, shims, stubs, bound, pending, slots);
+        BindModule(module, true, shims, stubs, sources, bound, pending, slots);
     }
 
     if (bound.Bindings.empty())
@@ -215,7 +235,9 @@ ResolveResult ResolveImportsImpl(const MappedImage& image, const PeImage& pe, co
         return {.Error = ResolveError::ProtectionFailed, .Imports = std::nullopt};
     }
 
-    logger.Info("Imports: {} bound, {} stubbed", bound.Bindings.size() - pending.size(), pending.size());
+    logger.Info("Imports: {} from title modules, {} shimmed, {} passed through, {} stubbed",
+                bound.CountFrom(ImportSource::TitleModule), bound.CountFrom(ImportSource::Shim),
+                bound.CountFrom(ImportSource::Host), bound.CountFrom(ImportSource::Stub));
     return {.Error = ResolveError::None, .Imports = std::move(bound)};
 }
 } // namespace
@@ -229,6 +251,32 @@ BoundImports& BoundImports::operator=(BoundImports&&) noexcept = default;
 size_t BoundImports::StubbedCount() const noexcept
 {
     return Stubs ? Stubs->Entries.size() : 0;
+}
+
+size_t BoundImports::CountFrom(ImportSource source) const noexcept
+{
+    size_t count = 0;
+    for (const auto& binding : Bindings)
+    {
+        count += binding.Source == source ? 1 : 0;
+    }
+    return count;
+}
+
+std::string_view ToString(ImportSource source) noexcept
+{
+    switch (source)
+    {
+    case ImportSource::TitleModule:
+        return "TitleModule";
+    case ImportSource::Shim:
+        return "Shim";
+    case ImportSource::Host:
+        return "Host";
+    case ImportSource::Stub:
+        return "Stub";
+    }
+    return "Unknown";
 }
 
 uint64_t DefaultStubReturnValue(StubKind kind) noexcept
@@ -265,15 +313,22 @@ std::string_view ToString(ResolveError error) noexcept
 }
 
 ResolveResult ResolveImports(const MappedImage& image, const PeImage& pe, const Kernel::ShimRegistry& shims,
-                             Kernel::StubRegistry& stubs, ImageAllocator& stubAllocator, Core::Logger& logger) noexcept
+                             Kernel::StubRegistry& stubs, ImageAllocator& stubAllocator, Core::Logger& logger,
+                             ImportSources sources) noexcept
 {
     try
     {
-        return ResolveImportsImpl(image, pe, shims, stubs, stubAllocator, logger);
+        return ResolveImportsImpl(image, pe, shims, stubs, stubAllocator, logger, sources);
     }
     catch (const std::bad_alloc&)
     {
         return {.Error = ResolveError::OutOfMemory, .Imports = std::nullopt};
     }
+}
+
+ResolveResult ResolveImports(const MappedImage& image, const PeImage& pe, const Kernel::ShimRegistry& shims,
+                             Kernel::StubRegistry& stubs, ImageAllocator& stubAllocator, Core::Logger& logger) noexcept
+{
+    return ResolveImports(image, pe, shims, stubs, stubAllocator, logger, ImportSources{});
 }
 } // namespace OpenEra::Loader

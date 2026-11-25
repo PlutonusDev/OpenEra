@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -15,6 +16,7 @@
 #include "Kernel/ShimGuard.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
+#include "Loader/HostModules.h"
 #include "Loader/ImageMapper.h"
 #include "Loader/ImageMemory.h"
 #include "Loader/ImportResolver.h"
@@ -162,6 +164,26 @@ struct Fixture
     {
         return ResolveImports(Image, Pe, Shims, Stubs, stubAllocator, Log);
     }
+
+    ResolveResult Resolve(ImportSources sources)
+    {
+        return ResolveImports(Image, Pe, Shims, Stubs, *StubAllocator, Log, sources);
+    }
+};
+
+// Returns fixed addresses for one module, to stand in for title modules.
+class FixedSource final : public SymbolSource
+{
+public:
+    std::optional<uint64_t> FindExport(std::string_view module, std::string_view symbol) override
+    {
+        return module == "Missing.dll" && symbol == "Gone" ? std::optional<uint64_t>(0x7777'0000) : std::nullopt;
+    }
+
+    std::optional<uint64_t> FindExport(std::string_view module, uint16_t ordinal) override
+    {
+        return module == "Math.dll" && ordinal == 7 ? std::optional<uint64_t>(0x7777'0007) : std::nullopt;
+    }
 };
 } // namespace
 
@@ -187,12 +209,12 @@ TEST_CASE("ResolveImports binds shims by name, ordinal and delay-load", "[Import
 
     REQUIRE(imports.Bindings.size() == 6);
     CHECK(imports.StubbedCount() == 3);
-    CHECK_FALSE(imports.Bindings.at(0).Stubbed);
+    CHECK(imports.Bindings.at(0).Source == ImportSource::Shim);
     CHECK(imports.Bindings.at(1).Ordinal == uint16_t{7});
-    CHECK(imports.Bindings.at(2).Stubbed);
+    CHECK(imports.Bindings.at(2).Source == ImportSource::Stub);
     CHECK(imports.Bindings.at(2).Symbol == "Gone");
     CHECK(imports.Bindings.at(5).Delayed);
-    CHECK(fixture.Sink->Contains("Imports: 3 bound, 3 stubbed"));
+    CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 3 shimmed, 0 passed through, 3 stubbed"));
 }
 
 TEST_CASE("Unresolved imports call stubs that record hits and return a failure value", "[ImportResolver]")
@@ -305,4 +327,62 @@ TEST_CASE("ResolveImports reports failures without partial writes", "[ImportReso
 TEST_CASE("Resolver enum names", "[ImportResolver]")
 {
     CHECK(ToString(ResolveError::StubAllocationFailed) == "StubAllocationFailed");
+    CHECK(ToString(ImportSource::Host) == "Host");
+}
+
+TEST_CASE("Imports resolve as title module, then shim, then host, then stub", "[ImportResolver]")
+{
+    Fixture fixture;
+    constexpr uint32_t kKernelIat = 0x2080;
+    fixture.Pe.Imports.push_back(
+        MakeModule("KERNEL32.dll", kKernelIat, {Named("GetTickCount64"), Named("NoSuchExport")}));
+    const auto host = HostModules::CreateDefault();
+    const auto realTicks = host->FindExport("kernel32", "GetTickCount64");
+    REQUIRE(realTicks.has_value());
+
+    SECTION("host passthrough for allowed modules")
+    {
+        const auto result = fixture.Resolve({.TitleModules = nullptr, .Host = host.get()});
+        REQUIRE(result.Error == ResolveError::None);
+        const auto& imports = result.Imports.value();
+
+        CHECK(ReadSlot(fixture.Image, kKernelIat) == *realTicks);
+        CHECK(imports.Bindings.at(5).Source == ImportSource::Host);
+        CHECK(imports.Bindings.at(6).Source == ImportSource::Stub); // Not exported by the host.
+        CHECK(imports.Bindings.at(4).Source == ImportSource::Stub); // xbox.dll: no shim and not allowed.
+        CHECK(imports.CountFrom(ImportSource::Shim) == 3);
+        CHECK(imports.CountFrom(ImportSource::Host) == 1);
+        CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 3 shimmed, 1 passed through, 4 stubbed"));
+    }
+
+    SECTION("a shim overrides the host export")
+    {
+        ShimModule kernel("kernel32.dll", StubKind::Win32Import);
+        REQUIRE(kernel.Export("GetTickCount64", ToShimProc(&There)));
+        const bool registered = fixture.Shims.Register(std::move(kernel));
+        REQUIRE(registered);
+
+        const auto result = fixture.Resolve({.TitleModules = nullptr, .Host = host.get()});
+        REQUIRE(result.Error == ResolveError::None);
+        CHECK(ReadSlot(fixture.Image, kKernelIat) == std::bit_cast<uint64_t>(&There));
+        CHECK(result.Imports->Bindings.at(5).Source == ImportSource::Shim);
+    }
+
+    SECTION("title modules win over shims and stubs")
+    {
+        FixedSource title;
+        const auto result = fixture.Resolve({.TitleModules = &title, .Host = host.get()});
+        REQUIRE(result.Error == ResolveError::None);
+        CHECK(ReadSlot(fixture.Image, kMissingIat) == 0x7777'0000);
+        CHECK(ReadSlot(fixture.Image, kMathIat + 8) == 0x7777'0007); // Over the Math.dll ordinal 7 shim.
+        CHECK(result.Imports->Bindings.at(1).Source == ImportSource::TitleModule);
+        CHECK(result.Imports->CountFrom(ImportSource::TitleModule) == 2);
+    }
+
+    SECTION("without a host source, allowed modules still stub")
+    {
+        const auto result = fixture.Resolve();
+        REQUIRE(result.Error == ResolveError::None);
+        CHECK(result.Imports->Bindings.at(5).Source == ImportSource::Stub);
+    }
 }
