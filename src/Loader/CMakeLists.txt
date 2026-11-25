@@ -2,7 +2,11 @@ add_library(OpenEraLoader STATIC
     PeReader.h
     PeReader.cpp
     XvdReader.h
-    XvdReader.cpp)
+    XvdReader.cpp
+    ImageMemory.h
+    ImageMemory.cpp
+    ImageMapper.h
+    ImageMapper.cpp)
 add_library(OpenEra::Loader ALIAS OpenEraLoader)
 
 # Core is public: it provides the shared include root ("Loader/PeReader.h").
