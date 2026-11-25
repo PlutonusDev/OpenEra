@@ -13,6 +13,11 @@
 #include <string_view>
 #include <vector>
 
+namespace OpenEra::Core
+{
+class Logger;
+} // namespace OpenEra::Core
+
 namespace OpenEra::Loader
 {
 // "MZ" at offset 0 of the MS-DOS stub.
@@ -141,6 +146,24 @@ struct ImportDescriptor
 };
 static_assert(sizeof(ImportDescriptor) == 20);
 
+struct ExportDirectoryTable
+{
+    uint32_t ExportFlags;
+    uint32_t TimeDateStamp;
+    uint16_t MajorVersion;
+    uint16_t MinorVersion;
+    uint32_t NameRva;
+    uint32_t OrdinalBase;
+    uint32_t AddressTableEntries;
+    uint32_t NamePointerCount;
+    uint32_t ExportAddressTableRva;
+    uint32_t NamePointerRva;
+    uint32_t OrdinalTableRva;
+};
+static_assert(sizeof(ExportDirectoryTable) == 40);
+static_assert(offsetof(ExportDirectoryTable, OrdinalBase) == 16);
+static_assert(offsetof(ExportDirectoryTable, OrdinalTableRva) == 36);
+
 #pragma pack(pop)
 
 // PE32+ import lookup table entry flag: import by ordinal instead of by name.
@@ -149,7 +172,8 @@ constexpr uint64_t kImportByOrdinalFlag = 1ULL << 63;
 // Hard limits that stop malformed images from causing unbounded work.
 constexpr size_t kMaxImportModules = 4096;
 constexpr size_t kMaxImportsPerModule = 65536;
-constexpr size_t kMaxImportNameLength = 4096;
+constexpr size_t kMaxExports = 65536;
+constexpr size_t kMaxSymbolNameLength = 4096;
 
 enum class PeError : uint8_t
 {
@@ -167,6 +191,10 @@ enum class PeError : uint8_t
     BadImportName,
     BadImportThunk,
     TooManyImports,
+    BadExportDirectory,
+    BadExportTable,
+    BadExportName,
+    TooManyExports,
     OutOfMemory,
 };
 
@@ -187,6 +215,14 @@ struct PeImportModule
     std::vector<PeImportEntry> Entries;
 };
 
+struct PeExportEntry
+{
+    uint32_t Ordinal = 0; // Biased by OrdinalBase.
+    uint32_t Rva = 0;
+    std::string Name;      // Empty for ordinal-only exports.
+    std::string Forwarder; // "Dll.Symbol" when the RVA points inside the export directory.
+};
+
 struct PeImage
 {
     CoffFileHeader FileHeader{};
@@ -194,6 +230,9 @@ struct PeImage
     std::vector<DataDirectory> DataDirectories;
     std::vector<SectionHeader> Sections;
     std::vector<PeImportModule> Imports;
+    std::string ExportName;
+    // One entry per used address slot in ordinal order; extra names for a slot follow as aliases.
+    std::vector<PeExportEntry> Exports;
 
     // Returns the directory, or nullopt if the image declares fewer directories.
     [[nodiscard]] std::optional<DataDirectory> Directory(DataDirectoryIndex index) const noexcept;
@@ -205,9 +244,10 @@ struct PeParseResult
     std::optional<PeImage> Image; // Set exactly when Error == PeError::None.
 };
 
-// Parses the headers, section table and import directory of a PE32+ image
-// laid out as a file (not mapped). Never reads outside `file`.
+// Parses the headers, sections, imports and exports of a PE32+ image laid out
+// as a file (not mapped). Never reads outside `file`; problems are logged.
 [[nodiscard]] PeParseResult ParsePe(std::span<const std::byte> file) noexcept;
+[[nodiscard]] PeParseResult ParsePe(std::span<const std::byte> file, Core::Logger& logger) noexcept;
 
 // Maps an RVA to an offset in the file. RVAs inside the headers map 1:1.
 // Returns nullopt for RVAs outside every section, or in a section's
