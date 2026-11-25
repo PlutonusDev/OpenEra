@@ -1,15 +1,20 @@
 #include "PeReader.h"
 
+#include <algorithm>
+#include <iterator>
+#include <limits>
 #include <new>
 #include <utility>
 
 #include "Core/ByteReader.h"
+#include "Core/Logger.h"
 
 namespace OpenEra::Loader
 {
 namespace
 {
 using Core::ByteReader;
+using Core::Logger;
 
 // Import lookup table entry (by name): bits 31-62 are reserved and must be zero.
 constexpr uint64_t kImportReservedBits = 0x7FFF'FFFF'8000'0000ULL;
@@ -61,7 +66,7 @@ std::optional<T> ReadAtRva(std::span<const std::byte> file, const PeImage& image
 }
 
 // Reads a NUL-terminated ASCII string. Fails if it is unterminated within
-// kMaxImportNameLength bytes or runs off the end of the file.
+// kMaxSymbolNameLength bytes or runs off the end of the file.
 std::optional<std::string> ReadNameAtRva(std::span<const std::byte> file, const PeImage& image, uint64_t rva)
 {
     const auto offset = MapRva(image, rva);
@@ -77,7 +82,7 @@ std::optional<std::string> ReadNameAtRva(std::span<const std::byte> file, const 
     }
 
     std::string name;
-    while (name.size() < kMaxImportNameLength)
+    while (name.size() < kMaxSymbolNameLength)
     {
         const auto character = reader.ReadStruct<char>();
         if (!character)
@@ -184,13 +189,14 @@ PeError ParseHeaders(std::span<const std::byte> file, PeImage& image)
     return PeError::None;
 }
 
-PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image, uint32_t tableRva,
-                          std::vector<PeImportEntry>& entries)
+PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image, Logger& logger,
+                          std::string_view dllName, uint32_t tableRva, std::vector<PeImportEntry>& entries)
 {
     for (size_t index = 0;; ++index)
     {
         if (index >= kMaxImportsPerModule)
         {
+            logger.Warn("PE: {} imports more than {} symbols", dllName, kMaxImportsPerModule);
             return PeError::TooManyImports;
         }
 
@@ -198,6 +204,7 @@ PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image,
         const auto thunk = ReadAtRva<uint64_t>(file, image, thunkRva);
         if (!thunk)
         {
+            logger.Warn("PE: {} import thunk {} at RVA {:#x} is unmapped", dllName, index, thunkRva);
             return PeError::BadImportThunk;
         }
         if (*thunk == 0)
@@ -214,6 +221,7 @@ PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image,
         {
             if ((*thunk & kImportReservedBits) != 0)
             {
+                logger.Warn("PE: {} import thunk {} has reserved bits set ({:#x})", dllName, index, *thunk);
                 return PeError::BadImportThunk;
             }
 
@@ -222,6 +230,7 @@ PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image,
             auto name = ReadNameAtRva(file, image, *thunk + sizeof(uint16_t));
             if (!hint || !name || name->empty())
             {
+                logger.Warn("PE: {} import {} has a bad hint/name RVA {:#x}", dllName, index, *thunk);
                 return PeError::BadImportName;
             }
             entry.Hint = *hint;
@@ -231,7 +240,7 @@ PeError ParseImportThunks(std::span<const std::byte> file, const PeImage& image,
     }
 }
 
-PeError ParseImports(std::span<const std::byte> file, PeImage& image)
+PeError ParseImports(std::span<const std::byte> file, PeImage& image, Logger& logger)
 {
     const auto directory = image.Directory(DataDirectoryIndex::Import);
     if (!directory || directory->VirtualAddress == 0 || directory->Size == 0)
@@ -243,6 +252,7 @@ PeError ParseImports(std::span<const std::byte> file, PeImage& image)
     {
         if (index >= kMaxImportModules)
         {
+            logger.Warn("PE: more than {} import descriptors", kMaxImportModules);
             return PeError::TooManyImports;
         }
 
@@ -250,34 +260,165 @@ PeError ParseImports(std::span<const std::byte> file, PeImage& image)
         const auto descriptor = ReadAtRva<ImportDescriptor>(file, image, descriptorRva);
         if (!descriptor)
         {
+            logger.Warn("PE: import descriptor {} at RVA {:#x} is unmapped", index, descriptorRva);
             return PeError::BadImportDirectory;
         }
-        if (descriptor->NameRva == 0 && descriptor->ImportAddressTableRva == 0)
+
+        // Copied out of the packed struct before logging; the logger takes references.
+        const uint32_t nameRva = descriptor->NameRva;
+        const uint32_t lookupRva = descriptor->ImportLookupTableRva;
+        const uint32_t addressRva = descriptor->ImportAddressTableRva;
+        if (nameRva == 0 && addressRva == 0)
         {
             return PeError::None; // Null terminator entry.
         }
 
         PeImportModule module;
-        module.ImportAddressTableRva = descriptor->ImportAddressTableRva;
+        module.ImportAddressTableRva = addressRva;
 
-        auto dllName = ReadNameAtRva(file, image, descriptor->NameRva);
+        auto dllName = ReadNameAtRva(file, image, nameRva);
         if (!dllName || dllName->empty())
         {
+            logger.Warn("PE: import descriptor {} has a bad DLL name RVA {:#x}", index, nameRva);
             return PeError::BadImportName;
         }
         module.DllName = std::move(*dllName);
 
         // Prefer the lookup table; some linkers leave it zero and only fill the
         // address table, which holds the same entries in an unbound file.
-        const uint32_t tableRva = descriptor->ImportLookupTableRva != 0 ? descriptor->ImportLookupTableRva
-                                                                        : descriptor->ImportAddressTableRva;
-        if (const auto error = ParseImportThunks(file, image, tableRva, module.Entries); error != PeError::None)
+        const uint32_t tableRva = lookupRva != 0 ? lookupRva : addressRva;
+        if (const auto error = ParseImportThunks(file, image, logger, module.DllName, tableRva, module.Entries);
+            error != PeError::None)
         {
             return error;
         }
 
         image.Imports.push_back(std::move(module));
     }
+}
+
+PeError ParseExports(std::span<const std::byte> file, PeImage& image, Logger& logger)
+{
+    const auto directory = image.Directory(DataDirectoryIndex::Export);
+    if (!directory || directory->VirtualAddress == 0 || directory->Size == 0)
+    {
+        return PeError::None;
+    }
+
+    const uint64_t directoryStart = directory->VirtualAddress;
+    const uint64_t directoryEnd = directoryStart + directory->Size;
+    const auto table = ReadAtRva<ExportDirectoryTable>(file, image, directoryStart);
+    if (!table)
+    {
+        logger.Warn("PE: export directory at RVA {:#x} is unmapped", directoryStart);
+        return PeError::BadExportDirectory;
+    }
+
+    const uint32_t nameRva = table->NameRva;
+    const uint32_t ordinalBase = table->OrdinalBase;
+    const uint32_t addressCount = table->AddressTableEntries;
+    const uint32_t nameCount = table->NamePointerCount;
+    const uint32_t addressTableRva = table->ExportAddressTableRva;
+    const uint32_t namePointerRva = table->NamePointerRva;
+    const uint32_t ordinalTableRva = table->OrdinalTableRva;
+
+    if (addressCount > kMaxExports || nameCount > kMaxExports)
+    {
+        logger.Warn("PE: export table has {} addresses and {} names (limit {})", addressCount, nameCount, kMaxExports);
+        return PeError::TooManyExports;
+    }
+    if (addressCount != 0 && ordinalBase > std::numeric_limits<uint32_t>::max() - (addressCount - 1))
+    {
+        logger.Warn("PE: export ordinal base {} overflows with {} entries", ordinalBase, addressCount);
+        return PeError::BadExportDirectory;
+    }
+
+    if (nameRva != 0)
+    {
+        auto name = ReadNameAtRva(file, image, nameRva);
+        if (!name)
+        {
+            logger.Warn("PE: export DLL name RVA {:#x} is invalid", nameRva);
+            return PeError::BadExportName;
+        }
+        image.ExportName = std::move(*name);
+    }
+
+    std::vector<PeExportEntry> slots(addressCount);
+    for (uint32_t index = 0; index < addressCount; ++index)
+    {
+        const uint64_t entryRva = addressTableRva + (index * sizeof(uint32_t));
+        const auto address = ReadAtRva<uint32_t>(file, image, entryRva);
+        if (!address)
+        {
+            logger.Warn("PE: export address {} at RVA {:#x} is unmapped", index, entryRva);
+            return PeError::BadExportTable;
+        }
+
+        auto& slot = slots.at(index);
+        slot.Ordinal = ordinalBase + index;
+        slot.Rva = *address;
+        if (*address >= directoryStart && *address < directoryEnd)
+        {
+            auto forwarder = ReadNameAtRva(file, image, *address);
+            if (!forwarder || forwarder->empty())
+            {
+                logger.Warn("PE: export {} has a bad forwarder RVA {:#x}", slot.Ordinal, *address);
+                return PeError::BadExportName;
+            }
+            slot.Forwarder = std::move(*forwarder);
+        }
+    }
+
+    std::vector<PeExportEntry> aliases;
+    for (uint32_t index = 0; index < nameCount; ++index)
+    {
+        const uint64_t pointerRva = namePointerRva + (index * sizeof(uint32_t));
+        const uint64_t ordinalRva = ordinalTableRva + (index * sizeof(uint16_t));
+        const auto namePointer = ReadAtRva<uint32_t>(file, image, pointerRva);
+        const auto slotIndex = ReadAtRva<uint16_t>(file, image, ordinalRva);
+        if (!namePointer || !slotIndex)
+        {
+            logger.Warn("PE: export name {} has an unmapped table entry (name {:#x}, ordinal {:#x})", index, pointerRva,
+                        ordinalRva);
+            return PeError::BadExportTable;
+        }
+        if (*slotIndex >= addressCount || slots.at(*slotIndex).Rva == 0)
+        {
+            logger.Warn("PE: export name {} refers to unused address slot {}", index, *slotIndex);
+            return PeError::BadExportTable;
+        }
+
+        auto name = ReadNameAtRva(file, image, *namePointer);
+        if (!name || name->empty())
+        {
+            logger.Warn("PE: export name {} has a bad RVA {:#x}", index, *namePointer);
+            return PeError::BadExportName;
+        }
+
+        auto& slot = slots.at(*slotIndex);
+        if (slot.Name.empty())
+        {
+            slot.Name = std::move(*name);
+        }
+        else
+        {
+            auto alias = slot;
+            alias.Name = std::move(*name);
+            aliases.push_back(std::move(alias));
+        }
+    }
+
+    image.Exports.reserve(slots.size() + aliases.size());
+    for (auto& slot : slots)
+    {
+        if (slot.Rva != 0)
+        {
+            image.Exports.push_back(std::move(slot));
+        }
+    }
+    std::ranges::move(aliases, std::back_inserter(image.Exports));
+    return PeError::None;
 }
 } // namespace
 
@@ -313,6 +454,14 @@ std::string_view ToString(PeError error) noexcept
         return "BadImportThunk";
     case PeError::TooManyImports:
         return "TooManyImports";
+    case PeError::BadExportDirectory:
+        return "BadExportDirectory";
+    case PeError::BadExportTable:
+        return "BadExportTable";
+    case PeError::BadExportName:
+        return "BadExportName";
+    case PeError::TooManyExports:
+        return "TooManyExports";
     case PeError::OutOfMemory:
         return "OutOfMemory";
     }
@@ -331,14 +480,24 @@ std::optional<DataDirectory> PeImage::Directory(DataDirectoryIndex index) const 
 
 PeParseResult ParsePe(std::span<const std::byte> file) noexcept
 {
+    return ParsePe(file, Core::DefaultLogger());
+}
+
+PeParseResult ParsePe(std::span<const std::byte> file, Core::Logger& logger) noexcept
+{
     try
     {
         PeImage image;
         if (const auto error = ParseHeaders(file, image); error != PeError::None)
         {
+            logger.Warn("PE: invalid headers ({})", ToString(error));
             return {.Error = error, .Image = std::nullopt};
         }
-        if (const auto error = ParseImports(file, image); error != PeError::None)
+        if (const auto error = ParseImports(file, image, logger); error != PeError::None)
+        {
+            return {.Error = error, .Image = std::nullopt};
+        }
+        if (const auto error = ParseExports(file, image, logger); error != PeError::None)
         {
             return {.Error = error, .Image = std::nullopt};
         }
