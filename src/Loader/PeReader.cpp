@@ -420,6 +420,276 @@ PeError ParseExports(std::span<const std::byte> file, PeImage& image, Logger& lo
     std::ranges::move(aliases, std::back_inserter(image.Exports));
     return PeError::None;
 }
+
+std::optional<DataDirectory> PresentDirectory(const PeImage& image, DataDirectoryIndex index) noexcept
+{
+    const auto directory = image.Directory(index);
+    if (!directory || directory->VirtualAddress == 0 || directory->Size == 0)
+    {
+        return std::nullopt;
+    }
+    return directory;
+}
+
+std::optional<uint32_t> VaToRva(const PeImage& image, uint64_t va) noexcept
+{
+    const uint64_t base = image.OptionalHeader.ImageBase;
+    if (va < base || va - base >= image.OptionalHeader.SizeOfImage)
+    {
+        return std::nullopt;
+    }
+    return static_cast<uint32_t>(va - base);
+}
+
+PeError ParseRelocations(std::span<const std::byte> file, PeImage& image, Logger& logger)
+{
+    const auto directory = PresentDirectory(image, DataDirectoryIndex::BaseRelocation);
+    if (!directory)
+    {
+        return PeError::None;
+    }
+
+    const uint32_t sizeOfImage = image.OptionalHeader.SizeOfImage;
+    uint64_t end = directory->VirtualAddress;
+    end += directory->Size;
+    for (uint64_t blockRva = directory->VirtualAddress; blockRva < end;)
+    {
+        const auto block = ReadAtRva<BaseRelocationBlock>(file, image, blockRva);
+        if (!block)
+        {
+            logger.Warn("PE: relocation block at RVA {:#x} is unmapped", blockRva);
+            return PeError::BadRelocationTable;
+        }
+
+        const uint32_t pageRva = block->PageRva;
+        const uint32_t blockSize = block->BlockSize;
+        if (blockSize < sizeof(BaseRelocationBlock) || blockSize % sizeof(uint16_t) != 0 || blockSize > end - blockRva)
+        {
+            logger.Warn("PE: relocation block at RVA {:#x} has a bad size {:#x}", blockRva, blockSize);
+            return PeError::BadRelocationTable;
+        }
+
+        const uint64_t entryCount = (blockSize - sizeof(BaseRelocationBlock)) / sizeof(uint16_t);
+        for (uint64_t index = 0; index < entryCount; ++index)
+        {
+            const uint64_t entryRva = blockRva + sizeof(BaseRelocationBlock) + (index * sizeof(uint16_t));
+            const auto entry = ReadAtRva<uint16_t>(file, image, entryRva);
+            if (!entry)
+            {
+                logger.Warn("PE: relocation entry at RVA {:#x} is unmapped", entryRva);
+                return PeError::BadRelocationTable;
+            }
+
+            const uint32_t type = *entry >> 12U;
+            const uint32_t offset = *entry & 0x0FFFU;
+            if (type == kRelocationTypeAbsolute)
+            {
+                continue;
+            }
+            if (type != kRelocationTypeDir64)
+            {
+                logger.Warn("PE: relocation at page {:#x} + {:#x} has unsupported type {}", pageRva, offset, type);
+                return PeError::BadRelocationTable;
+            }
+            if (pageRva > sizeOfImage || offset + sizeof(uint64_t) > sizeOfImage - pageRva)
+            {
+                logger.Warn("PE: relocation at page {:#x} + {:#x} is outside the image", pageRva, offset);
+                return PeError::BadRelocationTable;
+            }
+            image.RelocationRvas.push_back(pageRva + offset);
+        }
+        blockRva += blockSize;
+    }
+    return PeError::None;
+}
+
+PeError ParseTls(std::span<const std::byte> file, PeImage& image, Logger& logger)
+{
+    const auto directory = PresentDirectory(image, DataDirectoryIndex::Tls);
+    if (!directory)
+    {
+        return PeError::None;
+    }
+
+    const uint32_t directoryRva = directory->VirtualAddress;
+    const auto table =
+        directory->Size >= sizeof(TlsDirectory64) ? ReadAtRva<TlsDirectory64>(file, image, directoryRva) : std::nullopt;
+    if (!table)
+    {
+        logger.Warn("PE: TLS directory at RVA {:#x} is unmapped or too small", directoryRva);
+        return PeError::BadTlsDirectory;
+    }
+
+    // Copied out of the packed struct before logging; the logger takes references.
+    const uint64_t rawStart = table->RawDataStartVa;
+    const uint64_t rawEnd = table->RawDataEndVa;
+    const uint64_t callbacksVa = table->CallbacksVa;
+    const uint64_t imageEnd = image.OptionalHeader.ImageBase + image.OptionalHeader.SizeOfImage;
+    if (rawStart != 0 && (!VaToRva(image, rawStart) || rawEnd < rawStart || rawEnd > imageEnd))
+    {
+        logger.Warn("PE: TLS template [{:#x}, {:#x}) is outside the image", rawStart, rawEnd);
+        return PeError::BadTlsDirectory;
+    }
+
+    PeTls tls;
+    tls.Directory = *table;
+    if (callbacksVa != 0)
+    {
+        const auto callbacksRva = VaToRva(image, callbacksVa);
+        if (!callbacksRva)
+        {
+            logger.Warn("PE: TLS callback table VA {:#x} is outside the image", callbacksVa);
+            return PeError::BadTlsDirectory;
+        }
+
+        for (size_t index = 0;; ++index)
+        {
+            if (index >= kMaxTlsCallbacks)
+            {
+                logger.Warn("PE: more than {} TLS callbacks", kMaxTlsCallbacks);
+                return PeError::BadTlsDirectory;
+            }
+
+            const uint64_t entryRva = *callbacksRva + (index * sizeof(uint64_t));
+            const auto callbackVa = ReadAtRva<uint64_t>(file, image, entryRva);
+            if (!callbackVa)
+            {
+                logger.Warn("PE: TLS callback table entry {} at RVA {:#x} is unmapped", index, entryRva);
+                return PeError::BadTlsDirectory;
+            }
+            if (*callbackVa == 0)
+            {
+                break;
+            }
+
+            const auto callbackRva = VaToRva(image, *callbackVa);
+            if (!callbackRva)
+            {
+                logger.Warn("PE: TLS callback {} VA {:#x} is outside the image", index, *callbackVa);
+                return PeError::BadTlsDirectory;
+            }
+            tls.CallbackRvas.push_back(*callbackRva);
+        }
+    }
+    image.Tls = std::move(tls);
+    return PeError::None;
+}
+
+PeError ParseExceptions(std::span<const std::byte> file, PeImage& image, Logger& logger)
+{
+    const auto directory = PresentDirectory(image, DataDirectoryIndex::Exception);
+    if (!directory)
+    {
+        return PeError::None;
+    }
+
+    const uint32_t directoryRva = directory->VirtualAddress;
+    const uint32_t directorySize = directory->Size;
+    if (directorySize % sizeof(RuntimeFunction) != 0)
+    {
+        logger.Warn("PE: exception directory size {:#x} is not a multiple of {}", directorySize,
+                    sizeof(RuntimeFunction));
+        return PeError::BadExceptionDirectory;
+    }
+
+    // Both ends must map before reserving, so a bogus size can't drive the allocation.
+    uint64_t lastByteRva = directoryRva;
+    lastByteRva += directorySize - 1;
+    if (!MapRva(image, directoryRva) || !MapRva(image, lastByteRva))
+    {
+        logger.Warn("PE: exception directory [{:#x}, +{:#x}) is unmapped", directoryRva, directorySize);
+        return PeError::BadExceptionDirectory;
+    }
+
+    const uint32_t sizeOfImage = image.OptionalHeader.SizeOfImage;
+    const size_t count = directorySize / sizeof(RuntimeFunction);
+    image.RuntimeFunctions.reserve(count);
+    uint32_t previousEnd = 0;
+    for (size_t index = 0; index < count; ++index)
+    {
+        const uint64_t entryRva = directoryRva + (index * sizeof(RuntimeFunction));
+        const auto function = ReadAtRva<RuntimeFunction>(file, image, entryRva);
+        if (!function)
+        {
+            logger.Warn("PE: runtime function {} at RVA {:#x} is unmapped", index, entryRva);
+            return PeError::BadExceptionDirectory;
+        }
+
+        const uint32_t begin = function->BeginRva;
+        const uint32_t endRva = function->EndRva;
+        const uint32_t unwind = function->UnwindInfoRva;
+        if (begin >= endRva || endRva > sizeOfImage || unwind == 0 || unwind >= sizeOfImage)
+        {
+            logger.Warn("PE: runtime function {} has a bad range [{:#x}, {:#x}) or unwind RVA {:#x}", index, begin,
+                        endRva, unwind);
+            return PeError::BadExceptionDirectory;
+        }
+        if (begin < previousEnd)
+        {
+            logger.Warn("PE: runtime function {} at {:#x} is unsorted or overlaps the previous one", index, begin);
+            return PeError::BadExceptionDirectory;
+        }
+        previousEnd = endRva;
+        image.RuntimeFunctions.push_back(*function);
+    }
+    return PeError::None;
+}
+
+PeError ParseDelayImports(std::span<const std::byte> file, PeImage& image, Logger& logger)
+{
+    const auto directory = PresentDirectory(image, DataDirectoryIndex::DelayImport);
+    if (!directory)
+    {
+        return PeError::None;
+    }
+
+    for (size_t index = 0;; ++index)
+    {
+        if (index >= kMaxImportModules)
+        {
+            logger.Warn("PE: more than {} delay-load descriptors", kMaxImportModules);
+            return PeError::TooManyImports;
+        }
+
+        const uint64_t descriptorRva = directory->VirtualAddress + (index * sizeof(DelayLoadDescriptor));
+        const auto descriptor = ReadAtRva<DelayLoadDescriptor>(file, image, descriptorRva);
+        if (!descriptor)
+        {
+            logger.Warn("PE: delay-load descriptor {} at RVA {:#x} is unmapped", index, descriptorRva);
+            return PeError::BadDelayImportDirectory;
+        }
+
+        const uint32_t nameRva = descriptor->NameRva;
+        const uint32_t addressRva = descriptor->DelayImportAddressTableRva;
+        const uint32_t nameTableRva = descriptor->DelayImportNameTableRva;
+        if (nameRva == 0)
+        {
+            return PeError::None; // Terminator entry.
+        }
+        if (nameTableRva == 0 || addressRva == 0)
+        {
+            logger.Warn("PE: delay-load descriptor {} has no name or address table", index);
+            return PeError::BadDelayImportDirectory;
+        }
+
+        PeImportModule module;
+        module.ImportAddressTableRva = addressRva;
+        auto dllName = ReadNameAtRva(file, image, nameRva);
+        if (!dllName || dllName->empty())
+        {
+            logger.Warn("PE: delay-load descriptor {} has a bad DLL name RVA {:#x}", index, nameRva);
+            return PeError::BadImportName;
+        }
+        module.DllName = std::move(*dllName);
+
+        if (const auto error = ParseImportThunks(file, image, logger, module.DllName, nameTableRva, module.Entries);
+            error != PeError::None)
+        {
+            return error;
+        }
+        image.DelayImports.push_back(std::move(module));
+    }
+}
 } // namespace
 
 std::string_view ToString(PeError error) noexcept
@@ -462,6 +732,14 @@ std::string_view ToString(PeError error) noexcept
         return "BadExportName";
     case PeError::TooManyExports:
         return "TooManyExports";
+    case PeError::BadRelocationTable:
+        return "BadRelocationTable";
+    case PeError::BadTlsDirectory:
+        return "BadTlsDirectory";
+    case PeError::BadExceptionDirectory:
+        return "BadExceptionDirectory";
+    case PeError::BadDelayImportDirectory:
+        return "BadDelayImportDirectory";
     case PeError::OutOfMemory:
         return "OutOfMemory";
     }
@@ -497,7 +775,24 @@ PeParseResult ParsePe(std::span<const std::byte> file, Core::Logger& logger) noe
         {
             return {.Error = error, .Image = std::nullopt};
         }
-        if (const auto error = ParseExports(file, image, logger); error != PeError::None)
+        PeError error = ParseExports(file, image, logger);
+        if (error == PeError::None)
+        {
+            error = ParseRelocations(file, image, logger);
+        }
+        if (error == PeError::None)
+        {
+            error = ParseTls(file, image, logger);
+        }
+        if (error == PeError::None)
+        {
+            error = ParseExceptions(file, image, logger);
+        }
+        if (error == PeError::None)
+        {
+            error = ParseDelayImports(file, image, logger);
+        }
+        if (error != PeError::None)
         {
             return {.Error = error, .Image = std::nullopt};
         }
