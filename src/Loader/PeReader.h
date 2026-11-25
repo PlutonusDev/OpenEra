@@ -164,7 +164,55 @@ static_assert(sizeof(ExportDirectoryTable) == 40);
 static_assert(offsetof(ExportDirectoryTable, OrdinalBase) == 16);
 static_assert(offsetof(ExportDirectoryTable, OrdinalTableRva) == 36);
 
+// Header of one base relocation block; 16-bit entries (type << 12 | page offset) follow.
+struct BaseRelocationBlock
+{
+    uint32_t PageRva;
+    uint32_t BlockSize; // Including this header.
+};
+static_assert(sizeof(BaseRelocationBlock) == 8);
+
+// Addresses are virtual addresses (ImageBase-relative), not RVAs.
+struct TlsDirectory64
+{
+    uint64_t RawDataStartVa;
+    uint64_t RawDataEndVa;
+    uint64_t IndexAddressVa;
+    uint64_t CallbacksVa;
+    uint32_t ZeroFillSize;
+    uint32_t Characteristics;
+};
+static_assert(sizeof(TlsDirectory64) == 40);
+static_assert(offsetof(TlsDirectory64, ZeroFillSize) == 32);
+
+// x64 exception directory (.pdata) entry.
+struct RuntimeFunction
+{
+    uint32_t BeginRva;
+    uint32_t EndRva;
+    uint32_t UnwindInfoRva;
+};
+static_assert(sizeof(RuntimeFunction) == 12);
+
+// One entry of the delay-load directory table; an entry with no name ends the table.
+struct DelayLoadDescriptor
+{
+    uint32_t Attributes;
+    uint32_t NameRva;
+    uint32_t ModuleHandleRva;
+    uint32_t DelayImportAddressTableRva;
+    uint32_t DelayImportNameTableRva;
+    uint32_t BoundDelayImportTableRva;
+    uint32_t UnloadDelayImportTableRva;
+    uint32_t TimeDateStamp;
+};
+static_assert(sizeof(DelayLoadDescriptor) == 32);
+static_assert(offsetof(DelayLoadDescriptor, DelayImportNameTableRva) == 16);
+
 #pragma pack(pop)
+
+constexpr uint16_t kRelocationTypeAbsolute = 0;
+constexpr uint16_t kRelocationTypeDir64 = 10;
 
 // PE32+ import lookup table entry flag: import by ordinal instead of by name.
 constexpr uint64_t kImportByOrdinalFlag = 1ULL << 63;
@@ -174,6 +222,7 @@ constexpr size_t kMaxImportModules = 4096;
 constexpr size_t kMaxImportsPerModule = 65536;
 constexpr size_t kMaxExports = 65536;
 constexpr size_t kMaxSymbolNameLength = 4096;
+constexpr size_t kMaxTlsCallbacks = 1024;
 
 enum class PeError : uint8_t
 {
@@ -195,6 +244,10 @@ enum class PeError : uint8_t
     BadExportTable,
     BadExportName,
     TooManyExports,
+    BadRelocationTable,
+    BadTlsDirectory,
+    BadExceptionDirectory,
+    BadDelayImportDirectory,
     OutOfMemory,
 };
 
@@ -223,6 +276,12 @@ struct PeExportEntry
     std::string Forwarder; // "Dll.Symbol" when the RVA points inside the export directory.
 };
 
+struct PeTls
+{
+    TlsDirectory64 Directory{};
+    std::vector<uint32_t> CallbackRvas; // In call order.
+};
+
 struct PeImage
 {
     CoffFileHeader FileHeader{};
@@ -233,6 +292,12 @@ struct PeImage
     std::string ExportName;
     // One entry per used address slot in ordinal order; extra names for a slot follow as aliases.
     std::vector<PeExportEntry> Exports;
+    // RVAs of the 64-bit fields to adjust when the image is not loaded at ImageBase.
+    std::vector<uint32_t> RelocationRvas;
+    std::optional<PeTls> Tls;
+    std::vector<RuntimeFunction> RuntimeFunctions;
+    // ImportAddressTableRva holds each module's delay-load address table.
+    std::vector<PeImportModule> DelayImports;
 
     // Returns the directory, or nullopt if the image declares fewer directories.
     [[nodiscard]] std::optional<DataDirectory> Directory(DataDirectoryIndex index) const noexcept;
@@ -244,8 +309,9 @@ struct PeParseResult
     std::optional<PeImage> Image; // Set exactly when Error == PeError::None.
 };
 
-// Parses the headers, sections, imports and exports of a PE32+ image laid out
-// as a file (not mapped). Never reads outside `file`; problems are logged.
+// Parses the headers, sections, imports, exports, base relocations, TLS,
+// exception and delay-import directories of a PE32+ image laid out as a file
+// (not mapped). Never reads outside `file`; problems are logged.
 [[nodiscard]] PeParseResult ParsePe(std::span<const std::byte> file) noexcept;
 [[nodiscard]] PeParseResult ParsePe(std::span<const std::byte> file, Core::Logger& logger) noexcept;
 

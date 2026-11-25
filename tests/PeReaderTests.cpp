@@ -70,9 +70,31 @@ constexpr uint32_t kMainNameRva = 0x3150;
 constexpr uint32_t kForwardedNameRva = 0x3160;
 constexpr uint32_t kZeroBytesRva = 0x3170;
 
+// Optional .xdata section (ImageBuilder::WithDirectories): RVA 0x4000, file 0x800.
+constexpr uint64_t kImageBase = 0x1'4000'0000ULL;
+constexpr uint32_t kXdataRva = 0x4000;
+constexpr uint32_t kXdataFileOffset = 0x800;
+constexpr uint32_t kXdataRawSize = 0x400;
+constexpr size_t kFileSizeWithDirectories = 0xC00;
+constexpr uint32_t kSizeOfImageWithDirectories = 0x5000;
+constexpr uint32_t kRelocationsRva = 0x4000;
+constexpr uint32_t kTlsDirectoryRva = 0x4040;
+constexpr uint32_t kTlsCallbacksRva = 0x4130;
+constexpr uint32_t kRuntimeFunctionsRva = 0x4200;
+constexpr uint32_t kDelayDescriptorsRva = 0x4280;
+constexpr uint32_t kDelayDllNameRva = 0x4340;
+constexpr uint32_t kDelayAddressTableRva = 0x4360;
+constexpr uint32_t kDelayNameTableRva = 0x4380;
+constexpr uint32_t kLateFuncRva = 0x43A0;
+
 constexpr size_t IdataFileOffset(uint32_t rva) noexcept
 {
     return size_t{rva} - kIdataRva + kIdataFileOffset;
+}
+
+constexpr size_t XdataFileOffset(uint32_t rva) noexcept
+{
+    return size_t{rva} - kXdataRva + kXdataFileOffset;
 }
 
 constexpr size_t EdataFileOffset(uint32_t rva) noexcept
@@ -145,13 +167,49 @@ struct ImageBuilder
     std::array<uint32_t, 3> ExportNamePointers{kAliasNameRva, kForwardedNameRva, kMainNameRva};
     std::array<uint16_t, 3> ExportOrdinals{0, 3, 0};
 
+    // Relocations, TLS, exception and delay-import directories in .xdata.
+    bool WithDirectories = false;
+    DataDirectory RelocationDirectory{.VirtualAddress = kRelocationsRva, .Size = 28};
+    DataDirectory TlsDirectoryEntry{.VirtualAddress = kTlsDirectoryRva, .Size = sizeof(TlsDirectory64)};
+    DataDirectory ExceptionDirectory{.VirtualAddress = kRuntimeFunctionsRva, .Size = 3 * sizeof(RuntimeFunction)};
+    DataDirectory DelayImportDirectory{.VirtualAddress = kDelayDescriptorsRva, .Size = 2 * sizeof(DelayLoadDescriptor)};
+    // Two blocks: page 0x1000 with three DIR64 entries and one padding entry, page 0x2000 with one of each.
+    BaseRelocationBlock FirstBlock{.PageRva = kTextRva, .BlockSize = 16};
+    std::array<uint16_t, 4> FirstEntries{0xA000, 0xA008, 0x0000, 0xA010};
+    BaseRelocationBlock SecondBlock{.PageRva = kIdataRva, .BlockSize = 12};
+    std::array<uint16_t, 2> SecondEntries{0xA0F8, 0x0000};
+    TlsDirectory64 Tls{.RawDataStartVa = kImageBase + 0x4100,
+                       .RawDataEndVa = kImageBase + 0x4110,
+                       .IndexAddressVa = kImageBase + 0x4120,
+                       .CallbacksVa = kImageBase + kTlsCallbacksRva,
+                       .ZeroFillSize = 0x20,
+                       .Characteristics = 0};
+    std::array<uint64_t, 3> TlsCallbacks{kImageBase + kTextRva, kImageBase + kTextRva + 4, 0};
+    std::array<RuntimeFunction, 3> RuntimeFunctions{{
+        {.BeginRva = kTextRva, .EndRva = kTextRva + 0x4, .UnwindInfoRva = 0x4300},
+        {.BeginRva = kTextRva + 0x4, .EndRva = kTextRva + 0x10, .UnwindInfoRva = 0x4308},
+        {.BeginRva = kTextRva + 0x10, .EndRva = kTextRva + 0x20, .UnwindInfoRva = 0x4310},
+    }};
+    std::array<DelayLoadDescriptor, 2> DelayDescriptors{{
+        {.Attributes = 1,
+         .NameRva = kDelayDllNameRva,
+         .ModuleHandleRva = 0x4350,
+         .DelayImportAddressTableRva = kDelayAddressTableRva,
+         .DelayImportNameTableRva = kDelayNameTableRva,
+         .BoundDelayImportTableRva = 0,
+         .UnloadDelayImportTableRva = 0,
+         .TimeDateStamp = 0},
+        {},
+    }};
+    std::array<uint64_t, 3> DelayNames{kLateFuncRva, kImportByOrdinalFlag | 9U, 0};
+
     ImageBuilder()
     {
         Optional.Magic = kOptionalHeaderMagicPe32Plus;
         Optional.MajorLinkerVersion = 14;
         Optional.AddressOfEntryPoint = kTextRva;
         Optional.BaseOfCode = kTextRva;
-        Optional.ImageBase = 0x1'4000'0000ULL;
+        Optional.ImageBase = kImageBase;
         Optional.SectionAlignment = 0x1000;
         Optional.FileAlignment = 0x200;
         Optional.SizeOfImage = 0x3000;
@@ -220,12 +278,58 @@ struct ImageBuilder
                                 .Characteristics = 0x4000'0040}); // Initialized data, read.
         }
 
-        std::vector<std::byte> bytes(WithExports ? kFileSizeWithExports : kFileSize);
+        auto optional = Optional;
+        if (WithDirectories)
+        {
+            ++fileHeader.SectionCount;
+            optional.SizeOfImage = kSizeOfImageWithDirectories;
+            directories.at(static_cast<size_t>(DataDirectoryIndex::BaseRelocation)) = RelocationDirectory;
+            directories.at(static_cast<size_t>(DataDirectoryIndex::Tls)) = TlsDirectoryEntry;
+            directories.at(static_cast<size_t>(DataDirectoryIndex::Exception)) = ExceptionDirectory;
+            directories.at(static_cast<size_t>(DataDirectoryIndex::DelayImport)) = DelayImportDirectory;
+            sections.push_back({.Name = MakeSectionName(".xdata"),
+                                .VirtualSize = kXdataRawSize,
+                                .VirtualAddress = kXdataRva,
+                                .SizeOfRawData = kXdataRawSize,
+                                .PointerToRawData = kXdataFileOffset,
+                                .PointerToRelocations = 0,
+                                .PointerToLineNumbers = 0,
+                                .RelocationCount = 0,
+                                .LineNumberCount = 0,
+                                .Characteristics = 0x4000'0040}); // Initialized data, read.
+        }
+
+        size_t fileSize = kFileSize;
+        if (WithExports)
+        {
+            fileSize = kFileSizeWithExports;
+        }
+        if (WithDirectories)
+        {
+            fileSize = kFileSizeWithDirectories;
+        }
+        std::vector<std::byte> bytes(fileSize);
         Put(bytes, 0, Dos);
         Put(bytes, kPeHeaderOffset, Signature);
         Put(bytes, kFileHeaderOffset, fileHeader);
-        Put(bytes, kOptionalHeaderOffset, Optional);
+        Put(bytes, kOptionalHeaderOffset, optional);
         Put(bytes, kDataDirectoryOffset, directories);
+
+        if (WithDirectories)
+        {
+            Put(bytes, XdataFileOffset(kRelocationsRva), FirstBlock);
+            Put(bytes, XdataFileOffset(kRelocationsRva + 8), FirstEntries);
+            Put(bytes, XdataFileOffset(kRelocationsRva + 16), SecondBlock);
+            Put(bytes, XdataFileOffset(kRelocationsRva + 24), SecondEntries);
+            Put(bytes, XdataFileOffset(kTlsDirectoryRva), Tls);
+            Put(bytes, XdataFileOffset(kTlsCallbacksRva), TlsCallbacks);
+            Put(bytes, XdataFileOffset(kRuntimeFunctionsRva), RuntimeFunctions);
+            Put(bytes, XdataFileOffset(kDelayDescriptorsRva), DelayDescriptors);
+            PutString(bytes, XdataFileOffset(kDelayDllNameRva), "DELAY.dll");
+            Put(bytes, XdataFileOffset(kDelayNameTableRva), DelayNames);
+            Put(bytes, XdataFileOffset(kLateFuncRva), uint16_t{3});
+            PutString(bytes, XdataFileOffset(kLateFuncRva) + 2, "LateFunc");
+        }
 
         size_t sectionOffset = kSectionTableOffset;
         for (const auto& section : sections)
@@ -908,6 +1012,324 @@ TEST_CASE("ParsePe with exports never reads past a truncated buffer", "[PeReader
         const auto result = ParsePe(fullSpan.first(length), quiet);
         REQUIRE(result.Image.has_value() == (result.Error == PeError::None));
         if (length <= EdataFileOffset(kExportNamePointersRva))
+        {
+            REQUIRE(result.Error != PeError::None);
+        }
+    }
+    CHECK(ParsePe(fullSpan, quiet).Error == PeError::None);
+}
+
+TEST_CASE("Load-time directory structures match the documented layout", "[PeReader]")
+{
+    STATIC_REQUIRE(sizeof(BaseRelocationBlock) == 8);
+    STATIC_REQUIRE(sizeof(TlsDirectory64) == 40);
+    STATIC_REQUIRE(offsetof(TlsDirectory64, CallbacksVa) == 24);
+    STATIC_REQUIRE(sizeof(RuntimeFunction) == 12);
+    STATIC_REQUIRE(offsetof(RuntimeFunction, UnwindInfoRva) == 8);
+    STATIC_REQUIRE(sizeof(DelayLoadDescriptor) == 32);
+    STATIC_REQUIRE(offsetof(DelayLoadDescriptor, DelayImportAddressTableRva) == 12);
+    STATIC_REQUIRE(offsetof(DelayLoadDescriptor, TimeDateStamp) == 28);
+}
+
+TEST_CASE("ParsePe reads relocation, TLS, exception and delay-import directories", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithDirectories = true;
+    LoggedParse parse;
+    const auto result = parse(builder.Build());
+    REQUIRE(result.Error == PeError::None);
+    CHECK(parse.Sink->Empty());
+    const auto& image = result.Image.value();
+
+    // Padding (ABSOLUTE) entries are skipped.
+    CHECK(image.RelocationRvas == std::vector<uint32_t>{kTextRva, kTextRva + 8, kTextRva + 0x10, kIdataRva + 0xF8});
+
+    REQUIRE(image.Tls.has_value());
+    CHECK(image.Tls->Directory.RawDataStartVa == kImageBase + 0x4100);
+    CHECK(image.Tls->Directory.ZeroFillSize == 0x20);
+    CHECK(image.Tls->CallbackRvas == std::vector<uint32_t>{kTextRva, kTextRva + 4});
+
+    REQUIRE(image.RuntimeFunctions.size() == 3);
+    CHECK(image.RuntimeFunctions.at(1).BeginRva == kTextRva + 0x4);
+    CHECK(image.RuntimeFunctions.at(1).EndRva == kTextRva + 0x10);
+    CHECK(image.RuntimeFunctions.at(2).UnwindInfoRva == 0x4310);
+
+    REQUIRE(image.DelayImports.size() == 1);
+    const auto& delay = image.DelayImports.at(0);
+    CHECK(delay.DllName == "DELAY.dll");
+    CHECK(delay.ImportAddressTableRva == kDelayAddressTableRva);
+    REQUIRE(delay.Entries.size() == 2);
+    CHECK(delay.Entries.at(0).Name == "LateFunc");
+    CHECK(delay.Entries.at(0).Hint == 3);
+    CHECK(delay.Entries.at(1).Ordinal == uint16_t{9});
+
+    // Existing tables are unaffected by the extra section.
+    CHECK(image.Imports.size() == 2);
+    CHECK(image.Sections.size() == 3);
+}
+
+TEST_CASE("ParsePe load-time directory boundary conditions", "[PeReader]")
+{
+    ImageBuilder builder;
+
+    SECTION("absent directories")
+    {
+        const auto result = Parse(builder.Build());
+        REQUIRE(result.Error == PeError::None);
+        CHECK(result.Image->RelocationRvas.empty());
+        CHECK_FALSE(result.Image->Tls.has_value());
+        CHECK(result.Image->RuntimeFunctions.empty());
+        CHECK(result.Image->DelayImports.empty());
+    }
+
+    builder.WithDirectories = true;
+
+    SECTION("TLS without callbacks or template data")
+    {
+        builder.Tls.CallbacksVa = 0;
+        builder.Tls.RawDataStartVa = 0;
+        builder.Tls.RawDataEndVa = 0;
+        const auto result = Parse(builder.Build());
+        REQUIRE(result.Error == PeError::None);
+        REQUIRE(result.Image->Tls.has_value());
+        CHECK(result.Image->Tls->CallbackRvas.empty());
+    }
+
+    SECTION("relocation block holding only padding")
+    {
+        builder.RelocationDirectory.Size = 16;
+        builder.FirstEntries = {0, 0, 0, 0};
+        const auto result = Parse(builder.Build());
+        REQUIRE(result.Error == PeError::None);
+        CHECK(result.Image->RelocationRvas.empty());
+    }
+
+    SECTION("relocation at the last 8 bytes of the image")
+    {
+        builder.FirstBlock.PageRva = kSizeOfImageWithDirectories - 0x1000;
+        builder.FirstEntries = {0xAFF8, 0, 0, 0};
+        const auto result = Parse(builder.Build());
+        REQUIRE(result.Error == PeError::None);
+        CHECK(result.Image->RelocationRvas.front() == kSizeOfImageWithDirectories - 8);
+    }
+
+    SECTION("delay-import table with only a terminator")
+    {
+        builder.DelayDescriptors.at(0) = {};
+        const auto result = Parse(builder.Build());
+        REQUIRE(result.Error == PeError::None);
+        CHECK(result.Image->DelayImports.empty());
+    }
+}
+
+TEST_CASE("ParsePe rejects malformed relocation tables", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithDirectories = true;
+    LoggedParse parse;
+
+    SECTION("directory unmapped")
+    {
+        builder.RelocationDirectory.VirtualAddress = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+        CHECK(parse.Sink->Contains("relocation block at RVA 0x9000 is unmapped"));
+    }
+
+    SECTION("block smaller than its header")
+    {
+        builder.FirstBlock.BlockSize = 4;
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+        CHECK(parse.Sink->Contains("has a bad size 0x4"));
+    }
+
+    SECTION("odd block size")
+    {
+        builder.FirstBlock.BlockSize = 15;
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+    }
+
+    SECTION("block runs past the directory")
+    {
+        builder.RelocationDirectory.Size = 20;
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+        CHECK(parse.Sink->Contains("relocation block at RVA 0x4010 has a bad size 0xc"));
+    }
+
+    SECTION("unsupported relocation type")
+    {
+        builder.FirstEntries.at(1) = 0x3008; // HIGHLOW is not used by PE32+ images.
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+        CHECK(parse.Sink->Contains("unsupported type 3"));
+    }
+
+    SECTION("target outside the image")
+    {
+        builder.FirstBlock.PageRva = kSizeOfImageWithDirectories - 0x1000;
+        builder.FirstEntries = {0xAFFC, 0, 0, 0};
+        CHECK(parse(builder.Build()).Error == PeError::BadRelocationTable);
+        CHECK(parse.Sink->Contains("is outside the image"));
+    }
+}
+
+TEST_CASE("ParsePe rejects malformed TLS directories", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithDirectories = true;
+    LoggedParse parse;
+
+    SECTION("directory unmapped")
+    {
+        builder.TlsDirectoryEntry.VirtualAddress = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+        CHECK(parse.Sink->Contains("TLS directory at RVA 0x9000"));
+    }
+
+    SECTION("directory smaller than the TLS structure")
+    {
+        builder.TlsDirectoryEntry.Size = sizeof(TlsDirectory64) - 1;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+    }
+
+    SECTION("template outside the image")
+    {
+        builder.Tls.RawDataStartVa = kImageBase - 0x10;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+        CHECK(parse.Sink->Contains("TLS template"));
+    }
+
+    SECTION("template end before start")
+    {
+        builder.Tls.RawDataEndVa = builder.Tls.RawDataStartVa - 1;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+    }
+
+    SECTION("callback table outside the image")
+    {
+        builder.Tls.CallbacksVa = kImageBase + 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+        CHECK(parse.Sink->Contains("TLS callback table VA 0x140009000"));
+    }
+
+    SECTION("callback outside the image")
+    {
+        builder.TlsCallbacks.at(1) = kImageBase + 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadTlsDirectory);
+        CHECK(parse.Sink->Contains("TLS callback 1 VA 0x140009000"));
+    }
+
+    SECTION("callback table without a terminator")
+    {
+        // The only entry sits in the last 8 file bytes of .xdata; the next read has no file backing.
+        constexpr uint32_t kLastSlotRva = kXdataRva + kXdataRawSize - 8;
+        builder.Tls.CallbacksVa = kImageBase + kLastSlotRva;
+        auto bytes = builder.Build();
+        Put(bytes, XdataFileOffset(kLastSlotRva), kImageBase + kTextRva);
+        CHECK(parse(bytes).Error == PeError::BadTlsDirectory);
+        CHECK(parse.Sink->Contains("TLS callback table entry 1"));
+    }
+}
+
+TEST_CASE("ParsePe rejects malformed exception directories", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithDirectories = true;
+    LoggedParse parse;
+
+    SECTION("size not a multiple of the entry size")
+    {
+        builder.ExceptionDirectory.Size = (3 * sizeof(RuntimeFunction)) - 1;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+        CHECK(parse.Sink->Contains("is not a multiple of 12"));
+    }
+
+    SECTION("table unmapped")
+    {
+        builder.ExceptionDirectory.VirtualAddress = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+    }
+
+    SECTION("table runs past the section's file data")
+    {
+        builder.ExceptionDirectory.Size = 0x300;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+    }
+
+    SECTION("empty function range")
+    {
+        builder.RuntimeFunctions.at(1).EndRva = builder.RuntimeFunctions.at(1).BeginRva;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+        CHECK(parse.Sink->Contains("runtime function 1 has a bad range"));
+    }
+
+    SECTION("function ends past the image")
+    {
+        builder.RuntimeFunctions.at(2).EndRva = kSizeOfImageWithDirectories + 1;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+    }
+
+    SECTION("missing unwind info")
+    {
+        builder.RuntimeFunctions.at(0).UnwindInfoRva = 0;
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+    }
+
+    SECTION("unsorted entries")
+    {
+        std::swap(builder.RuntimeFunctions.at(0), builder.RuntimeFunctions.at(2));
+        CHECK(parse(builder.Build()).Error == PeError::BadExceptionDirectory);
+        CHECK(parse.Sink->Contains("unsorted or overlaps"));
+    }
+}
+
+TEST_CASE("ParsePe rejects malformed delay-import tables", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithDirectories = true;
+    LoggedParse parse;
+
+    SECTION("descriptor unmapped")
+    {
+        builder.DelayImportDirectory.VirtualAddress = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadDelayImportDirectory);
+        CHECK(parse.Sink->Contains("delay-load descriptor 0 at RVA 0x9000"));
+    }
+
+    SECTION("missing name table")
+    {
+        builder.DelayDescriptors.at(0).DelayImportNameTableRva = 0;
+        CHECK(parse(builder.Build()).Error == PeError::BadDelayImportDirectory);
+    }
+
+    SECTION("bad DLL name")
+    {
+        builder.DelayDescriptors.at(0).NameRva = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadImportName);
+        CHECK(parse.Sink->Contains("delay-load descriptor 0 has a bad DLL name RVA 0x9000"));
+    }
+
+    SECTION("bad hint/name entry")
+    {
+        builder.DelayNames.at(0) = 0x9000;
+        CHECK(parse(builder.Build()).Error == PeError::BadImportName);
+        CHECK(parse.Sink->Contains("DELAY.dll import 0 has a bad hint/name RVA 0x9000"));
+    }
+}
+
+TEST_CASE("ParsePe with load-time directories never reads past a truncated buffer", "[PeReader]")
+{
+    ImageBuilder builder;
+    builder.WithExports = true;
+    builder.WithDirectories = true;
+    const auto full = builder.Build();
+    const auto fullSpan = std::span(full);
+    Logger quiet;
+
+    for (size_t length = 0; length <= full.size(); ++length)
+    {
+        INFO("length = " << length);
+        const auto result = ParsePe(fullSpan.first(length), quiet);
+        REQUIRE(result.Image.has_value() == (result.Error == PeError::None));
+        if (length < XdataFileOffset(kLateFuncRva))
         {
             REQUIRE(result.Error != PeError::None);
         }
