@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/banner.jpg" alt="OpenEra: Xbox-on-Windows Compatibility Layer" width="720">
+<img src="docs/images/banner.gif" alt="OpenEra: Xbox-on-Windows Compatibility Layer" width="720">
 
 **An open-source compatibility layer for running Xbox Series X|S titles natively on Windows.**
 
