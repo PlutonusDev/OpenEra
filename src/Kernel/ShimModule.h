@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -20,14 +21,15 @@ namespace OpenEra::Kernel
 // a function pointer through another function pointer type is well defined.
 using ShimProc = void (*)();
 
+// Function pointer to function pointer conversion is what reinterpret_cast is for.
 template <typename Function>
-[[nodiscard]] ShimProc ToShimProc(Function* function) noexcept
+[[gsl::suppress("type.1")]] [[nodiscard]] ShimProc ToShimProc(Function* function) noexcept
 {
     return reinterpret_cast<ShimProc>(function);
 }
 
 template <typename Function>
-[[nodiscard]] Function* FromShimProc(ShimProc proc) noexcept
+[[gsl::suppress("type.1")]] [[nodiscard]] Function* FromShimProc(ShimProc proc) noexcept
 {
     return reinterpret_cast<Function*>(proc);
 }

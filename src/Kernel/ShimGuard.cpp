@@ -17,6 +17,19 @@ void ReportShimException(std::string_view shimName, std::string_view what) noexc
     }
 }
 
+void ReportShimException(std::string_view shimName, const std::exception& exception) noexcept
+{
+    try
+    {
+        ReportShimException(shimName, exception.what());
+    }
+    catch (...)
+    {
+        // what() is virtual; a misbehaving override must not escape either.
+        return;
+    }
+}
+
 void ReportPartialShim(StubKind kind, std::string_view module, std::string_view symbol, std::string_view note) noexcept
 {
     try

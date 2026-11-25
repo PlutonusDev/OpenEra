@@ -10,7 +10,10 @@ add_library(OpenEraLoader STATIC
     ImportResolver.h
     ImportResolver.cpp
     HostModules.h
-    HostModules.cpp)
+    HostModules.cpp
+    ModuleManager.h
+    ModuleManager.cpp
+    LoaderShims.cpp)
 add_library(OpenEra::Loader ALIAS OpenEraLoader)
 
 # Core is public: it provides the shared include root ("Loader/PeReader.h").

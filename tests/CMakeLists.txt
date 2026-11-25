@@ -18,6 +18,7 @@ add_executable(OpenEraTests
     ImageMapperTests.cpp
     ImportResolverTests.cpp
     LoggerTests.cpp
+    ModuleManagerTests.cpp
     PeReaderTests.cpp
     ShimModuleTests.cpp
     StubRegistryTests.cpp
