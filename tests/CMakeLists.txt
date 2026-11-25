@@ -16,6 +16,7 @@ add_executable(OpenEraTests
     ByteReaderTests.cpp
     LoggerTests.cpp
     PeReaderTests.cpp
+    ShimModuleTests.cpp
     StubRegistryTests.cpp
     XvdReaderTests.cpp)
 

@@ -1,4 +1,8 @@
 add_library(OpenEraKernel STATIC
+    ShimGuard.h
+    ShimGuard.cpp
+    ShimModule.h
+    ShimModule.cpp
     StubRegistry.h
     StubRegistry.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
