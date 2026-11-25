@@ -8,14 +8,7 @@ OpenEra is in early development: **no titles run yet**. The loader can parse, ma
 
 ![OpenEra API coverage](docs/compatibility/api-coverage.svg)
 
-Each square is one function, grouped by module.
-
-| Status | Meaning |
-| :--- | :--- |
-| ✅ Implemented | Behaves as documented for the cases titles use. |
-| 🟡 Partial | Works for common cases; each call also records a note in the stub summary (`ReportPartialShim`). |
-| 🟣 Stubbed | Explicit shim that returns a safe default without doing the work. |
-| ⬜ Missing | No shim yet. Calls go to a generated stub that records the call and returns a "not implemented" value. |
+Each square is one function.
 
 The tracked functions are the public APIs needed for milestone [M1: First title boots to menu](https://github.com/PlutonusDev/OpenEra/milestone/1), taken from public documentation (Microsoft Learn: Microsoft Game Development Kit, GameInput, Direct3D 12, XAudio2 and Win32 references). The list will be refined from the unimplemented-call summaries of real runs.
 
@@ -47,8 +40,6 @@ The tracked functions are the public APIs needed for milestone [M1: First title 
 | Input | GameInput gamepad mapping | ⚪ Planned | #30 |
 | Audio | XMA2 decoding and output | ⚪ Planned | #31 |
 | App | `openera` command-line launcher | ⚪ Planned | #32 |
-
-**Legend:** ✅ Done · 🟡 In progress · ⚪ Planned · ❌ Out of scope
 
 ## Titles
 
