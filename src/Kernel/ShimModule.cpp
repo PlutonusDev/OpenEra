@@ -116,27 +116,54 @@ const ShimExport* ShimModule::Find(uint16_t ordinal) const
     return it == m_byOrdinal.end() ? nullptr : it->second;
 }
 
+struct ShimRegistry::State
+{
+    std::deque<ShimModule> Modules; // Stable addresses for FindModule results.
+    std::unordered_map<std::string, const ShimModule*, Detail::CaseInsensitiveHash, Detail::CaseInsensitiveEqual>
+        ByName;
+};
+
+ShimRegistry::ShimRegistry() noexcept = default;
+ShimRegistry::~ShimRegistry() = default;
+ShimRegistry::ShimRegistry(ShimRegistry&&) noexcept = default;
+ShimRegistry& ShimRegistry::operator=(ShimRegistry&&) noexcept = default;
+
 bool ShimRegistry::Register(ShimModule module)
 {
-    if (m_byName.contains(module.Name()) ||
-        std::ranges::any_of(module.Aliases(), [this](const std::string& alias) { return m_byName.contains(alias); }))
+    if (!m_state)
+    {
+        m_state = std::make_unique<State>();
+    }
+
+    auto& byName = m_state->ByName;
+    if (byName.contains(module.Name()) ||
+        std::ranges::any_of(module.Aliases(), [&byName](const std::string& alias) { return byName.contains(alias); }))
     {
         return false;
     }
 
-    const auto& added = m_modules.emplace_back(std::move(module));
-    m_byName.emplace(added.Name(), &added);
+    const auto& added = m_state->Modules.emplace_back(std::move(module));
+    byName.emplace(added.Name(), &added);
     for (const auto& alias : added.Aliases())
     {
-        m_byName.emplace(alias, &added);
+        byName.emplace(alias, &added);
     }
     return true;
 }
 
 const ShimModule* ShimRegistry::FindModule(std::string_view name) const
 {
-    const auto it = m_byName.find(name);
-    return it == m_byName.end() ? nullptr : it->second;
+    if (!m_state)
+    {
+        return nullptr;
+    }
+    const auto it = m_state->ByName.find(name);
+    return it == m_state->ByName.end() ? nullptr : it->second;
+}
+
+size_t ShimRegistry::ModuleCount() const noexcept
+{
+    return m_state ? m_state->Modules.size() : 0;
 }
 
 std::optional<ShimResolution> ShimRegistry::Resolve(std::string_view module, std::string_view symbol) const
@@ -161,7 +188,7 @@ std::optional<ShimResolution> ShimRegistry::Resolve(std::string_view module, uin
     return ShimResolution{.Module = shimModule, .Export = shimExport};
 }
 
-ShimRegistry& DefaultShimRegistry()
+ShimRegistry& DefaultShimRegistry() noexcept
 {
     static ShimRegistry registry;
     return registry;

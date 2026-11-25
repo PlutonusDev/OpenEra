@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -110,6 +111,15 @@ struct ShimResolution
 class ShimRegistry
 {
 public:
+    ShimRegistry() noexcept;
+    ~ShimRegistry();
+
+    // Move-only: the lookup map points into the registry's own module storage.
+    ShimRegistry(const ShimRegistry&) = delete;
+    ShimRegistry& operator=(const ShimRegistry&) = delete;
+    ShimRegistry(ShimRegistry&&) noexcept;
+    ShimRegistry& operator=(ShimRegistry&&) noexcept;
+
     // Returns false, registering nothing, if the name or an alias is already taken.
     bool Register(ShimModule module);
 
@@ -117,16 +127,15 @@ public:
     [[nodiscard]] std::optional<ShimResolution> Resolve(std::string_view module, std::string_view symbol) const;
     [[nodiscard]] std::optional<ShimResolution> Resolve(std::string_view module, uint16_t ordinal) const;
 
-    [[nodiscard]] size_t ModuleCount() const noexcept { return m_modules.size(); }
+    [[nodiscard]] size_t ModuleCount() const noexcept;
 
 private:
-    std::deque<ShimModule> m_modules; // Stable addresses for FindModule results.
-    std::unordered_map<std::string, const ShimModule*, Detail::CaseInsensitiveHash, Detail::CaseInsensitiveEqual>
-        m_byName;
+    struct State;
+    std::unique_ptr<State> m_state; // Created on first Register, so construction never allocates.
 };
 
 // Strips a trailing ".dll" (any case). API set version suffixes are kept.
 [[nodiscard]] std::string_view NormalizeModuleName(std::string_view name) noexcept;
 
-[[nodiscard]] ShimRegistry& DefaultShimRegistry();
+[[nodiscard]] ShimRegistry& DefaultShimRegistry() noexcept;
 } // namespace OpenEra::Kernel

@@ -63,4 +63,8 @@ struct MapResult
                                  ImageAllocator& allocator) noexcept;
 [[nodiscard]] MapResult MapImage(std::span<const std::byte> file, const PeImage& image, ImageAllocator& allocator,
                                  Core::Logger& logger) noexcept;
+
+// (Re)applies the final protections MapImage sets: headers read-only, each
+// section from its characteristics. `image` must already have mapped successfully.
+[[nodiscard]] MapError ProtectImage(const PeImage& image, ImageMemory& memory, Core::Logger& logger);
 } // namespace OpenEra::Loader
