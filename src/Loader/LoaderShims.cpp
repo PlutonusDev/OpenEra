@@ -1,8 +1,10 @@
-// Runtime loader shims: LoadLibrary, GetModuleHandle, GetProcAddress and
-// FreeLibrary, resolved through the active ModuleManager.
+// Runtime loader shims (LoadLibrary, GetModuleHandle, GetProcAddress,
+// FreeLibrary) and the image-base lookups C++ exceptions need, resolved
+// through the active ModuleManager.
 #include <array>
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 
@@ -138,6 +140,53 @@ BOOL WINAPI FreeLibraryShim(HMODULE /*module*/) noexcept
 {
     return TRUE; // Title modules stay loaded for the life of the process.
 }
+
+// The OS only knows images its own loader mapped, so title modules are looked up first.
+uint64_t ImageBaseOf(void* address)
+{
+    const auto* manager = ModuleManager::Active();
+    if (manager != nullptr)
+    {
+        if (const uint64_t base = manager->ImageBaseFor(std::bit_cast<uint64_t>(address)); base != 0)
+        {
+            return base;
+        }
+    }
+    PVOID base = nullptr;
+    RtlPcToFileHeader(address, &base);
+    return std::bit_cast<uint64_t>(base);
+}
+
+PVOID NTAPI RtlPcToFileHeaderShim(PVOID pc, PVOID* baseOfImage) noexcept
+{
+    return Kernel::GuardShim<PVOID>("RtlPcToFileHeader", nullptr, nullptr,
+                                    [pc, baseOfImage]() -> PVOID
+                                    {
+                                        if (baseOfImage == nullptr)
+                                        {
+                                            return nullptr;
+                                        }
+                                        *baseOfImage = std::bit_cast<PVOID>(ImageBaseOf(pc));
+                                        return *baseOfImage;
+                                    });
+}
+
+// MSVC C++ exception record: code 0xE06D7363 ("msc"), then the magic number
+// 0x19930520, the thrown object, its throw info, and the image base the throw
+// info's RVAs are relative to. It only raises, so it's neither noexcept nor guarded.
+constexpr DWORD kCxxExceptionCode = 0xE06D'7363;
+constexpr ULONG_PTR kCxxMagic = 0x1993'0520;
+constexpr DWORD kCxxParameterCount = 4;
+
+[[gsl::suppress("f.6")]] [[noreturn]] void CxxThrowExceptionShim(void* object, void* throwInfo)
+{
+    // A rethrow (throw;) passes no throw info, so there's no image base either.
+    const uint64_t imageBase = throwInfo == nullptr ? 0 : ImageBaseOf(throwInfo);
+    const std::array<ULONG_PTR, kCxxParameterCount> parameters = {kCxxMagic, std::bit_cast<ULONG_PTR>(object),
+                                                                  std::bit_cast<ULONG_PTR>(throwInfo), imageBase};
+    RaiseException(kCxxExceptionCode, EXCEPTION_NONCONTINUABLE, kCxxParameterCount, parameters.data());
+    std::abort(); // Non-continuable: never reached.
+}
 } // namespace
 
 bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
@@ -153,7 +202,18 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
                           kernel.Export("GetModuleHandleW", Kernel::ToShimProc(&GetModuleHandleWShim)) &&
                           kernel.Export("GetModuleHandleA", Kernel::ToShimProc(&GetModuleHandleAShim)) &&
                           kernel.Export("GetProcAddress", Kernel::ToShimProc(&GetProcAddressShim)) &&
-                          kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim));
-    return exported && shims.Register(std::move(kernel));
+                          kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
+                          kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim));
+
+    Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
+    ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");
+    ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-2-0.dll");
+    const bool ntdllExported = ntdll.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim));
+
+    Kernel::ShimModule vcruntime("vcruntime140.dll", Kernel::StubKind::Win32Import);
+    const bool vcruntimeExported = vcruntime.Export("_CxxThrowException", Kernel::ToShimProc(&CxxThrowExceptionShim));
+
+    return exported && ntdllExported && vcruntimeExported && shims.Register(std::move(kernel)) &&
+           shims.Register(std::move(ntdll)) && shims.Register(std::move(vcruntime));
 }
 } // namespace OpenEra::Loader
