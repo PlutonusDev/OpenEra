@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in OpenEra crashes, fails to build, or behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach or link game files, dumps, keys, or copyrighted binaries. Logs and descriptions only.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Build with ...
+        2. Run ...
+        3. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Build system / tooling
+        - Core
+        - Loader (PE / XVD / XVC)
+        - Kernel
+        - Graphics
+        - Audio
+        - Input
+        - Other / unsure
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: OpenEra commit or version
+      placeholder: e.g. 98fac91
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, compiler (MSVC / Clang-CL and version), CMake version, GPU and driver if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant OpenEra log output or build errors.
+      render: text
