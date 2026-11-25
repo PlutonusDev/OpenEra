@@ -14,6 +14,7 @@ include(Catch)
 
 add_executable(OpenEraTests
     ByteReaderTests.cpp
+    ImageMapperTests.cpp
     LoggerTests.cpp
     PeReaderTests.cpp
     ShimModuleTests.cpp
