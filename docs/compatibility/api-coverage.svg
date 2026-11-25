@@ -1,0 +1,312 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="767" viewBox="0 0 1000 767" role="img" aria-label="OpenEra API coverage: 0 of 192 tracked functions implemented (0.0%)">
+  <style>
+    .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}
+    .title{font:600 20px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.h2{font:600 15px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .label{font:600 12px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.meta{font:400 12px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}.small{font-size:11px}
+    .implemented{fill:#1a7f37}.partial{fill:#bf8700}.stubbed{fill:#8250df}.missing{fill:#d0d7de}
+    @media (prefers-color-scheme:dark){.bg{fill:#0d1117;stroke:#30363d}.card{fill:#161b22;stroke:#30363d}.track{fill:#21262d}
+      .title,.h2,.label{fill:#e6edf3}.meta{fill:#9198a1}
+      .implemented{fill:#3fb950}.partial{fill:#d29922}.stubbed{fill:#a371f7}.missing{fill:#30363d}}
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="766" rx="12"/>
+  <text class="title" x="28" y="48">OpenEra API coverage</text>
+  <text class="meta" x="28" y="70">0 of 192 tracked functions implemented (0.0%)</text>
+  <rect class="missing" x="874" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="891" y="48">Missing 192</text>
+  <rect class="stubbed" x="777" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="794" y="48">Stubbed 0</text>
+  <rect class="partial" x="680" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="697" y="48">Partial 0</text>
+  <rect class="implemented" x="554" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="571" y="48">Implemented 0</text>
+  <rect class="track" x="28" y="88" width="944" height="8" rx="4"/>
+  <text class="h2" x="28" y="134">GDK runtime</text>
+  <text class="meta" x="972" y="134" text-anchor="end">0/70 implemented (0.0%)</text>
+  <rect class="track" x="28" y="144" width="944" height="4" rx="2"/>
+  <g transform="translate(28,158)">
+    <rect class="card" width="122" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XUser</text>
+    <text class="meta small" x="110" y="23" text-anchor="end">0/16</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XUserAddAsync: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XUserAddResult: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XUserDuplicateHandle: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XUserCloseHandle: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XUserGetId: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>XUserGetLocalId: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>XUserGetGamertag: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>XUserGetState: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>XUserGetIsGuest: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>XUserGetAgeGroup: Missing</title></rect>
+    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>XUserCheckPrivilege: Missing</title></rect>
+    <rect class="missing" x="87" y="49" width="12" height="12" rx="2"><title>XUserRegisterForChangeEvent: Missing</title></rect>
+    <rect class="missing" x="12" y="64" width="12" height="12" rx="2"><title>XUserUnregisterForChangeEvent: Missing</title></rect>
+    <rect class="missing" x="27" y="64" width="12" height="12" rx="2"><title>XUserGetGamerPictureAsync: Missing</title></rect>
+    <rect class="missing" x="42" y="64" width="12" height="12" rx="2"><title>XUserGetGamerPictureResultSize: Missing</title></rect>
+    <rect class="missing" x="57" y="64" width="12" height="12" rx="2"><title>XUserGetGamerPictureResult: Missing</title></rect>
+  </g>
+  <g transform="translate(162,158)">
+    <rect class="card" width="155" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XTaskQueue</text>
+    <text class="meta small" x="143" y="23" text-anchor="end">0/15</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XTaskQueueCreate: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XTaskQueueCreateComposite: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XTaskQueueGetPort: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XTaskQueueDuplicateHandle: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XTaskQueueDispatch: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>XTaskQueueCloseHandle: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>XTaskQueueTerminate: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>XTaskQueueSubmitCallback: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>XTaskQueueSubmitDelayedCallback: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>XTaskQueueRegisterWaiter: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>XTaskQueueUnregisterWaiter: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>XTaskQueueRegisterMonitor: Missing</title></rect>
+    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>XTaskQueueUnregisterMonitor: Missing</title></rect>
+    <rect class="missing" x="87" y="49" width="12" height="12" rx="2"><title>XTaskQueueGetCurrentProcessTaskQueue: Missing</title></rect>
+    <rect class="missing" x="102" y="49" width="12" height="12" rx="2"><title>XTaskQueueSetCurrentProcessTaskQueue: Missing</title></rect>
+  </g>
+  <g transform="translate(329,158)">
+    <rect class="card" width="139" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XGameSave</text>
+    <text class="meta small" x="127" y="23" text-anchor="end">0/13</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XGameSaveInitializeProvider: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XGameSaveInitializeProviderAsync: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XGameSaveInitializeProviderResult: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XGameSaveCloseProvider: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XGameSaveGetRemainingQuota: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>XGameSaveCreateContainer: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>XGameSaveCloseContainer: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>XGameSaveEnumerateContainerInfo: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>XGameSaveCreateUpdate: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>XGameSaveSubmitBlobWrite: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>XGameSaveSubmitUpdate: Missing</title></rect>
+    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>XGameSaveCloseUpdate: Missing</title></rect>
+    <rect class="missing" x="87" y="49" width="12" height="12" rx="2"><title>XGameSaveReadBlobData: Missing</title></rect>
+  </g>
+  <g transform="translate(480,158)">
+    <rect class="card" width="172" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XGameRuntime</text>
+    <text class="meta small" x="160" y="23" text-anchor="end">0/10</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XGameRuntimeInitialize: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XGameRuntimeUninitialize: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XGameRuntimeIsFeatureAvailable: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XGameGetXboxTitleId: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XSystemGetDeviceType: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>XSystemGetConsoleId: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>XSystemGetAppSpecificDeviceId: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>XSystemGetXboxLiveSandboxId: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>XPackageGetCurrentProcessPackageIdentifier: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>XLaunchUri: Missing</title></rect>
+  </g>
+  <g transform="translate(664,158)">
+    <rect class="card" width="122" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XAsync</text>
+    <text class="meta small" x="110" y="23" text-anchor="end">0/8</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XAsyncBegin: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XAsyncComplete: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XAsyncGetStatus: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XAsyncGetResultSize: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XAsyncGetResult: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>XAsyncCancel: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>XAsyncRun: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>XAsyncSchedule: Missing</title></rect>
+  </g>
+  <g transform="translate(798,158)">
+    <rect class="card" width="174" height="88" rx="8"/>
+    <text class="label" x="12" y="23">XMem / XThread</text>
+    <text class="meta small" x="162" y="23" text-anchor="end">0/5</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XMemAllocDefault: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XMemFreeDefault: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XMemSetAllocationHooks: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>XThreadIsTimeSensitive: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>XThreadSetTimeSensitive: Missing</title></rect>
+  </g>
+  <g transform="translate(28,258)">
+    <rect class="card" width="134" height="58" rx="8"/>
+    <text class="label" x="12" y="23">XNetworking</text>
+    <text class="meta small" x="122" y="23" text-anchor="end">0/3</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XNetworkingGetConnectivityHint: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>XNetworkingRegisterConnectivityHintChanged: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XNetworkingUnregisterConnectivityHintChanged: Missing</title></rect>
+  </g>
+  <text class="h2" x="28" y="360">Windows system</text>
+  <text class="meta" x="972" y="360" text-anchor="end">0/55 implemented (0.0%)</text>
+  <rect class="track" x="28" y="370" width="944" height="4" rx="2"/>
+  <g transform="translate(28,384)">
+    <rect class="card" width="204" height="73" rx="8"/>
+    <text class="label" x="12" y="23">Threads and TLS</text>
+    <text class="meta small" x="192" y="23" text-anchor="end">0/13</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>CreateThread: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>ExitThread: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>GetCurrentThreadId: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>SetThreadPriority: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>SetThreadAffinityMask: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>SetThreadDescription: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>Sleep: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>SleepEx: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>SwitchToThread: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>TlsAlloc: Missing</title></rect>
+    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>TlsGetValue: Missing</title></rect>
+    <rect class="missing" x="177" y="34" width="12" height="12" rx="2"><title>TlsSetValue: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>TlsFree: Missing</title></rect>
+  </g>
+  <g transform="translate(244,384)">
+    <rect class="card" width="132" height="73" rx="8"/>
+    <text class="label" x="12" y="23">Files</text>
+    <text class="meta small" x="120" y="23" text-anchor="end">0/12</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>CloseHandle: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>GetFileSizeEx: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>SetFilePointerEx: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>GetFileAttributesW: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>FindFirstFileW: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>FindNextFileW: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>FindClose: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Missing</title></rect>
+    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Missing</title></rect>
+  </g>
+  <g transform="translate(388,384)">
+    <rect class="card" width="204" height="73" rx="8"/>
+    <text class="label" x="12" y="23">Synchronization</text>
+    <text class="meta small" x="192" y="23" text-anchor="end">0/12</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>InitializeCriticalSection: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>EnterCriticalSection: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>LeaveCriticalSection: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>DeleteCriticalSection: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>InitializeSRWLock: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>AcquireSRWLockExclusive: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>ReleaseSRWLockExclusive: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>CreateEventW: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>SetEvent: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>ResetEvent: Missing</title></rect>
+    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>WaitForSingleObject: Missing</title></rect>
+    <rect class="missing" x="177" y="34" width="12" height="12" rx="2"><title>WaitForMultipleObjects: Missing</title></rect>
+  </g>
+  <g transform="translate(604,384)">
+    <rect class="card" width="222" height="73" rx="8"/>
+    <text class="label" x="12" y="23">Time and process</text>
+    <text class="meta small" x="210" y="23" text-anchor="end">0/11</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>QueryPerformanceCounter: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>QueryPerformanceFrequency: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>GetSystemTimeAsFileTime: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>GetTickCount64: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>GetSystemInfo: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>GetLastError: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>SetLastError: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>OutputDebugStringW: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>GetModuleHandleW: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>GetProcAddress: Missing</title></rect>
+    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>LoadLibraryExW: Missing</title></rect>
+  </g>
+  <g transform="translate(838,384)">
+    <rect class="card" width="134" height="73" rx="8"/>
+    <text class="label" x="12" y="23">Memory</text>
+    <text class="meta small" x="122" y="23" text-anchor="end">0/7</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>VirtualAlloc: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>VirtualFree: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>VirtualProtect: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>VirtualQuery: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>HeapAlloc: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>HeapFree: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>GetProcessHeap: Missing</title></rect>
+  </g>
+  <text class="h2" x="28" y="501">Direct3D 12</text>
+  <text class="meta" x="972" y="501" text-anchor="end">0/44 implemented (0.0%)</text>
+  <rect class="track" x="28" y="511" width="944" height="4" rx="2"/>
+  <g transform="translate(28,525)">
+    <rect class="card" width="386" height="73" rx="8"/>
+    <text class="label" x="12" y="23">ID3D12GraphicsCommandList</text>
+    <text class="meta small" x="374" y="23" text-anchor="end">0/23</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>Close: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>Reset: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>DrawInstanced: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>DrawIndexedInstanced: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>Dispatch: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>ExecuteIndirect: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>CopyBufferRegion: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>CopyTextureRegion: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>ResourceBarrier: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>SetPipelineState: Missing</title></rect>
+    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>SetGraphicsRootSignature: Missing</title></rect>
+    <rect class="missing" x="177" y="34" width="12" height="12" rx="2"><title>SetComputeRootSignature: Missing</title></rect>
+    <rect class="missing" x="192" y="34" width="12" height="12" rx="2"><title>SetDescriptorHeaps: Missing</title></rect>
+    <rect class="missing" x="207" y="34" width="12" height="12" rx="2"><title>SetGraphicsRootDescriptorTable: Missing</title></rect>
+    <rect class="missing" x="222" y="34" width="12" height="12" rx="2"><title>SetGraphicsRoot32BitConstants: Missing</title></rect>
+    <rect class="missing" x="237" y="34" width="12" height="12" rx="2"><title>IASetPrimitiveTopology: Missing</title></rect>
+    <rect class="missing" x="252" y="34" width="12" height="12" rx="2"><title>IASetVertexBuffers: Missing</title></rect>
+    <rect class="missing" x="267" y="34" width="12" height="12" rx="2"><title>IASetIndexBuffer: Missing</title></rect>
+    <rect class="missing" x="282" y="34" width="12" height="12" rx="2"><title>RSSetViewports: Missing</title></rect>
+    <rect class="missing" x="297" y="34" width="12" height="12" rx="2"><title>RSSetScissorRects: Missing</title></rect>
+    <rect class="missing" x="312" y="34" width="12" height="12" rx="2"><title>OMSetRenderTargets: Missing</title></rect>
+    <rect class="missing" x="327" y="34" width="12" height="12" rx="2"><title>ClearRenderTargetView: Missing</title></rect>
+    <rect class="missing" x="342" y="34" width="12" height="12" rx="2"><title>ClearDepthStencilView: Missing</title></rect>
+  </g>
+  <g transform="translate(426,525)">
+    <rect class="card" width="244" height="73" rx="8"/>
+    <text class="label" x="12" y="23">ID3D12Device</text>
+    <text class="meta small" x="232" y="23" text-anchor="end">0/18</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>CreateCommandQueue: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>CreateCommandAllocator: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>CreateCommandList: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>CreateGraphicsPipelineState: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>CreateComputePipelineState: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>CreateRootSignature: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>CreateDescriptorHeap: Missing</title></rect>
+    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>GetDescriptorHandleIncrementSize: Missing</title></rect>
+    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>CreateConstantBufferView: Missing</title></rect>
+    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>CreateShaderResourceView: Missing</title></rect>
+    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>CreateUnorderedAccessView: Missing</title></rect>
+    <rect class="missing" x="177" y="34" width="12" height="12" rx="2"><title>CreateRenderTargetView: Missing</title></rect>
+    <rect class="missing" x="192" y="34" width="12" height="12" rx="2"><title>CreateDepthStencilView: Missing</title></rect>
+    <rect class="missing" x="207" y="34" width="12" height="12" rx="2"><title>CreateSampler: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>CreateCommittedResource: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>CreateHeap: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>CreatePlacedResource: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>CreateFence: Missing</title></rect>
+  </g>
+  <g transform="translate(682,525)">
+    <rect class="card" width="290" height="73" rx="8"/>
+    <text class="label" x="12" y="23">ID3D12CommandQueue</text>
+    <text class="meta small" x="278" y="23" text-anchor="end">0/3</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>ExecuteCommandLists: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>Signal: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>Wait: Missing</title></rect>
+  </g>
+  <text class="h2" x="28" y="642">Input and audio</text>
+  <text class="meta" x="972" y="642" text-anchor="end">0/23 implemented (0.0%)</text>
+  <rect class="track" x="28" y="652" width="944" height="4" rx="2"/>
+  <g transform="translate(28,666)">
+    <rect class="card" width="126" height="73" rx="8"/>
+    <text class="label" x="12" y="23">GameInput</text>
+    <text class="meta small" x="114" y="23" text-anchor="end">0/12</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>GameInputCreate: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>IGameInput::GetCurrentReading: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>IGameInput::GetNextReading: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>IGameInput::GetPreviousReading: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>IGameInput::RegisterDeviceCallback: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>IGameInput::UnregisterCallback: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>IGameInput::FindDeviceFromId: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>IGameInputReading::GetGamepadState: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>IGameInputReading::GetTimestamp: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>IGameInputReading::GetDevice: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>IGameInputDevice::GetDeviceInfo: Missing</title></rect>
+    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>IGameInputDevice::SetRumbleState: Missing</title></rect>
+  </g>
+  <g transform="translate(166,666)">
+    <rect class="card" width="126" height="73" rx="8"/>
+    <text class="label" x="12" y="23">XAudio2</text>
+    <text class="meta small" x="114" y="23" text-anchor="end">0/11</text>
+    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>XAudio2Create: Missing</title></rect>
+    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>IXAudio2::CreateMasteringVoice: Missing</title></rect>
+    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>IXAudio2::CreateSourceVoice: Missing</title></rect>
+    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>IXAudio2::CreateSubmixVoice: Missing</title></rect>
+    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>IXAudio2::StartEngine: Missing</title></rect>
+    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>IXAudio2::StopEngine: Missing</title></rect>
+    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>IXAudio2SourceVoice::SubmitSourceBuffer: Missing</title></rect>
+    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>IXAudio2SourceVoice::Start: Missing</title></rect>
+    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>IXAudio2SourceVoice::Stop: Missing</title></rect>
+    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>IXAudio2SourceVoice::FlushSourceBuffers: Missing</title></rect>
+    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>IXAudio2Voice::SetVolume: Missing</title></rect>
+  </g>
+</svg>

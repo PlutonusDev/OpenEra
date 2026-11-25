@@ -55,6 +55,16 @@ jobs:
           . .github/scripts/Enter-VsDevShell.ps1
           ctest --test-dir build --output-on-failure --no-tests=error
 
+  docs:
+    name: Compatibility docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Coverage image and API matrix are up to date
+        shell: pwsh
+        run: ./tools/Update-Compatibility.ps1 -Check
+
   lint:
     name: clang-format and clang-tidy
     runs-on: windows-latest
