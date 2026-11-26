@@ -64,7 +64,7 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
 | PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, imports, exports, relocations, TLS, exception and delay-import directories. |
 | PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs, registers their unwind data so exceptions work, and starts them (static TLS, TLS callbacks, DllMain and the entry point). |
-| Run an unpacked title folder | `App` | ⚪ Planned | Read `MicrosoftGame.config` and start the title. |
+| Run an unpacked title folder | `App` | ✅ Done | `openera run` reads `MicrosoftGame.config` and starts the title. |
 | Console system modules | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; module mapping and API shims next. |
 | Direct3D 12.x translation | `Graphics` | ⚪ Planned | COM wrappers, command list translation and presentation. |
 | Shader recompiler | `Graphics` | ⚪ Planned | RDNA2 shader code to DXIL. |
@@ -102,6 +102,29 @@ ctest --test-dir build --output-on-failure
 ```
 
 To build with Clang-CL instead, add `-DCMAKE_CXX_COMPILER=clang-cl` to the first `cmake` command.
+
+### Running a title
+
+`openera` runs an unpacked title folder, the folder that contains `MicrosoftGame.config`:
+
+```powershell
+build\src\App\openera.exe info <title folder>
+build\src\App\openera.exe run <title folder>
+```
+
+`run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`. Run `openera --help` for the full list.
+
+After the title runs, `openera` exits with the title's own exit code. Otherwise it exits with:
+
+| Code | Meaning |
+| :---: | :--- |
+| 0 | Success |
+| 1 | Unexpected error |
+| 2 | Bad command line |
+| 3 | Not a folder, or a game package (OpenEra never decrypts or unpacks packages) |
+| 4 | `MicrosoftGame.config` missing or unusable, or no such executable |
+| 5 | Loading or linking the title failed |
+| 6 | Starting the title failed |
 
 ## Contributing
 

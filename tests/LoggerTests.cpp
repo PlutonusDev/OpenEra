@@ -2,7 +2,9 @@
 #include <charconv>
 #include <chrono>
 #include <cstddef>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -337,4 +339,28 @@ TEST_CASE("DefaultLogger is a single shared instance used by the free functions"
     CHECK(entries.at(2).Message == "w3");
     CHECK(entries.at(3).Level == LogLevel::Error);
     CHECK(entries.at(3).Message == "e4");
+}
+
+TEST_CASE("FileSink appends one line per record", "[Logger]")
+{
+    const auto path = std::filesystem::temp_directory_path() / "OpenEraTests" / "FileSink.log";
+    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::remove(path);
+    {
+        Logger logger;
+        logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(path));
+        logger.Info("first {}", 1);
+        logger.Warn("second");
+    }
+    std::ifstream stream(path);
+    std::string first;
+    std::string second;
+    std::getline(stream, first);
+    std::getline(stream, second);
+    CHECK(first.ends_with("[INFO ] first 1"));
+    CHECK(second.ends_with("[WARN ] second"));
+    stream.close();
+    std::filesystem::remove(path);
+
+    CHECK_THROWS_AS(OpenEra::Core::FileSink(path.parent_path() / "missing" / "x.log"), std::system_error);
 }

@@ -15,6 +15,21 @@ void StderrSink::Write(const LogRecord& record)
     std::cerr << FormatLogLine(record) << '\n';
 }
 
+FileSink::FileSink(const std::filesystem::path& path)
+    : m_stream(path, std::ios::app)
+{
+    if (!m_stream)
+    {
+        throw std::system_error(std::make_error_code(std::errc::io_error), "cannot open log file " + path.string());
+    }
+}
+
+void FileSink::Write(const LogRecord& record)
+{
+    m_stream << FormatLogLine(record) << '\n';
+    m_stream.flush();
+}
+
 void Logger::SetMinimumLevel(LogLevel level) noexcept
 {
     m_minimumLevel.store(level, std::memory_order_relaxed);

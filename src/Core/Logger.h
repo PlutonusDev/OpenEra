@@ -3,7 +3,9 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -71,6 +73,18 @@ class StderrSink final : public LogSink
 {
 public:
     void Write(const LogRecord& record) override;
+};
+
+// Appends FormatLogLine output to a file, one line per record, flushed as it goes.
+class FileSink final : public LogSink
+{
+public:
+    // Throws std::system_error if the file can't be opened.
+    explicit FileSink(const std::filesystem::path& path);
+    void Write(const LogRecord& record) override;
+
+private:
+    std::ofstream m_stream;
 };
 
 // Thread-safe logger that fans records out to its sinks.

@@ -15,6 +15,7 @@ include(Catch)
 add_executable(OpenEraTests
     ByteReaderTests.cpp
     ExceptionTests.cpp
+    GameConfigTests.cpp
     HostModulesTests.cpp
     ImageInitializerTests.cpp
     ImageMapperTests.cpp
@@ -24,9 +25,12 @@ add_executable(OpenEraTests
     PeReaderTests.cpp
     ShimModuleTests.cpp
     StubRegistryTests.cpp
+    TitleLauncherTests.cpp
+    XmlTests.cpp
     XvdReaderTests.cpp)
 
 target_link_libraries(OpenEraTests PRIVATE
+    OpenEra::App
     OpenEra::Core
     OpenEra::Loader
     OpenEra::Kernel
