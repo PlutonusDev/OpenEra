@@ -26,8 +26,8 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Loader | Load and link a title's own DLLs; runtime `LoadLibrary` / `GetProcAddress` | ✅ Done | #48 |
 | Loader | Register x64 unwind data; C++ and structured exceptions in mapped images | ✅ Done | #14 |
 | Loader | Static TLS, TLS callbacks, DllMain and the entry point | ✅ Done | #15 |
-| App | Run an unpacked title folder from `MicrosoftGame.config` | ⚪ Planned | #50 |
-| App | `openera` command-line launcher | ⚪ Planned | #32 |
+| App | Run an unpacked title folder from `MicrosoftGame.config` | ✅ Done | #50 |
+| App | `openera` command-line launcher (`run` and `info` for title folders) | 🟡 In progress | #32 |
 | Kernel | Unimplemented-call registry | ✅ Done | #8 |
 | Kernel | Shim module framework and exception guards | ✅ Done | #21 |
 | Kernel | Map console system modules onto shims and host DLLs | ⚪ Planned | #53 |

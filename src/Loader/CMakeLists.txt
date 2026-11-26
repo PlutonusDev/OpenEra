@@ -17,7 +17,9 @@ add_library(OpenEraLoader STATIC
     UnwindRegistration.h
     UnwindRegistration.cpp
     ImageInitializer.h
-    ImageInitializer.cpp)
+    ImageInitializer.cpp
+    GameConfig.h
+    GameConfig.cpp)
 add_library(OpenEra::Loader ALIAS OpenEraLoader)
 
 # Core is public: it provides the shared include root ("Loader/PeReader.h").
