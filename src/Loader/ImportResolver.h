@@ -25,6 +25,15 @@ namespace OpenEra::Loader
 // STATUS_NOT_IMPLEMENTED for syscalls, 0 (FALSE / null) for Win32 imports.
 [[nodiscard]] uint64_t DefaultStubReturnValue(Kernel::StubKind kind) noexcept;
 
+// Stub kind for an import from a module with no shim: GameCoreApi for Gaming
+// Runtime modules, Win32Import otherwise.
+[[nodiscard]] Kernel::StubKind StubKindForModule(std::string_view module);
+
+// Value an unresolved import from `module` returns: DefaultStubReturnValue,
+// except E_NOTIMPL for Win32 imports from COM / DirectX modules (d3d12, dxgi,
+// XAudio2, DirectStorage), where 0 would mean S_OK.
+[[nodiscard]] uint64_t StubReturnValue(Kernel::StubKind kind, std::string_view module);
+
 // Where an import was bound, in resolution order.
 enum class ImportSource : uint8_t
 {

@@ -10,6 +10,7 @@
 
 #include "Core/Logger.h"
 #include "Kernel/ShimGuard.h"
+#include "Loader/HostModules.h"
 
 namespace OpenEra::Loader
 {
@@ -97,7 +98,7 @@ void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRe
                 std::vector<PendingStub>& pending, std::vector<uint64_t>& slots)
 {
     const auto* shimModule = shims.FindModule(module.DllName);
-    const StubKind kind = shimModule != nullptr ? shimModule->Kind() : StubKind::Win32Import;
+    const StubKind kind = shimModule != nullptr ? shimModule->Kind() : StubKindForModule(module.DllName);
 
     for (size_t index = 0; index < module.Entries.size(); ++index)
     {
@@ -128,12 +129,13 @@ void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRe
         }
         else
         {
-            const auto& stub = bound.Stubs->Entries.emplace_back(StubEntry{.Kind = kind,
-                                                                           .Module = module.DllName,
-                                                                           .Symbol = entry.Name,
-                                                                           .Ordinal = entry.Ordinal,
-                                                                           .ReturnValue = DefaultStubReturnValue(kind),
-                                                                           .Registry = &stubs});
+            const auto& stub =
+                bound.Stubs->Entries.emplace_back(StubEntry{.Kind = kind,
+                                                            .Module = module.DllName,
+                                                            .Symbol = entry.Name,
+                                                            .Ordinal = entry.Ordinal,
+                                                            .ReturnValue = StubReturnValue(kind, module.DllName),
+                                                            .Registry = &stubs});
             pending.push_back({.Binding = bound.Bindings.size(), .Entry = &stub});
         }
 
@@ -277,6 +279,25 @@ std::string_view ToString(ImportSource source) noexcept
         return "Stub";
     }
     return "Unknown";
+}
+
+StubKind StubKindForModule(std::string_view module)
+{
+    static const std::array<std::string_view, 2> kGameCoreModules = {"xgameruntime", "gameinput"};
+    return std::ranges::find(kGameCoreModules, ModuleKey(module)) != kGameCoreModules.end() ? StubKind::GameCoreApi
+                                                                                            : StubKind::Win32Import;
+}
+
+uint64_t StubReturnValue(StubKind kind, std::string_view module)
+{
+    // COM and DirectX entry points report failure through an HRESULT, so 0 would read as success.
+    static const std::array<std::string_view, 7> kHResultModules = {"d3d12",     "d3d12_x",   "dxgi",    "dstorage",
+                                                                    "xaudio2_8", "xaudio2_9", "xapobase"};
+    if (kind == StubKind::Win32Import && std::ranges::find(kHResultModules, ModuleKey(module)) != kHResultModules.end())
+    {
+        return DefaultStubReturnValue(StubKind::GameCoreApi);
+    }
+    return DefaultStubReturnValue(kind);
 }
 
 uint64_t DefaultStubReturnValue(StubKind kind) noexcept
