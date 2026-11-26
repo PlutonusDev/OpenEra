@@ -114,6 +114,8 @@ build\src\App\openera.exe run <title folder>
 
 `run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. `--gpu` picks the GPU: by default OpenEra puts the NVIDIA or AMD GPU in front of the title (on hybrid laptops too), and `--gpu nvidia|amd|intel|<index>` overrides that. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`, and `--log-window` shows the log in its own window, coloured by level, that stays open after the title ends. Run `openera --help` for the full list.
 
+The title's own debug output (`OutputDebugString`) appears in the log as `Title: ...` lines, and the timer resolution is raised to 1 ms while it runs.
+
 OpenEra never modifies the title folder: anything the title writes, creates or deletes there goes to a per-title overlay under `%LOCALAPPDATA%\OpenEra\Titles\<identity>\Overlay`, and the title sees the two merged. Delete that folder to reset the title.
 
 After the title runs, `openera` exits with the title's own exit code. Otherwise it exits with:

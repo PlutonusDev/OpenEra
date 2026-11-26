@@ -162,7 +162,8 @@ private:
 //   LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W}, GetProcAddress,
 //   FreeLibrary and RtlPcToFileHeader, plus the file (Kernel::AddFileExports)
 //   and memory (Kernel::AddMemoryExports) shims, also under the file and
-//   memory API sets.
+//   memory API sets, and OutputDebugString{W,A} into the log
+//   (Kernel::AddDebugOutputExports).
 // - ntdll.dll (aliases the rtlsupport API sets): RtlPcToFileHeader.
 // - vcruntime140.dll: _CxxThrowException, which records the thrower's image
 //   base for title modules the OS loader doesn't know.

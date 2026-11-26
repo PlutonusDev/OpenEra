@@ -35,7 +35,7 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Kernel | Copy-on-write file layer over the title folder | ✅ Done | #54 |
 | Kernel | DirectStorage | ⚪ Planned | #56 |
 | Kernel | Memory management | 🟡 In progress | #23 |
-| Kernel | Threading, synchronization and timing | ⚪ Planned | #24 |
+| Kernel | Threading, synchronization and timing | 🟡 In progress | #24 |
 | Kernel | XGameRuntime and XTaskQueue | ⚪ Planned | #25 |
 | Kernel | XUser and system services | ⚪ Planned | #26 |
 | Graphics | Desktop DXGI / Direct3D 12 on the preferred GPU (NVIDIA or AMD first, `--gpu` to choose) | ✅ Done | #27 |
@@ -70,14 +70,14 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | Windows system | Files | 12 | 0 | 0 | 0 | 100.0% |
 | Windows system | Memory | 7 | 0 | 0 | 0 | 100.0% |
 | Windows system | Threads and TLS | 0 | 0 | 0 | 13 | 0.0% |
-| Windows system | Synchronization | 0 | 0 | 0 | 12 | 0.0% |
-| Windows system | Time and process | 0 | 0 | 0 | 11 | 0.0% |
+| Windows system | Synchronization | 12 | 0 | 0 | 0 | 100.0% |
+| Windows system | Time and process | 11 | 0 | 0 | 0 | 100.0% |
 | Direct3D 12 | ID3D12Device | 0 | 0 | 0 | 18 | 0.0% |
 | Direct3D 12 | ID3D12GraphicsCommandList | 0 | 0 | 0 | 23 | 0.0% |
 | Direct3D 12 | ID3D12CommandQueue | 0 | 0 | 0 | 3 | 0.0% |
 | Input and audio | GameInput | 0 | 0 | 0 | 12 | 0.0% |
 | Input and audio | XAudio2 | 0 | 0 | 0 | 11 | 0.0% |
-| **Total** | | **19** | **0** | **0** | **173** | **9.9%** |
+| **Total** | | **42** | **0** | **0** | **150** | **21.9%** |
 
 ### GDK runtime
 
@@ -255,40 +255,40 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 </details>
 
-<details><summary><b>Synchronization</b>: 0/12 implemented</summary>
+<details><summary><b>Synchronization</b>: 12/12 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
-| `InitializeCriticalSection` | ⬜ Missing |
-| `EnterCriticalSection` | ⬜ Missing |
-| `LeaveCriticalSection` | ⬜ Missing |
-| `DeleteCriticalSection` | ⬜ Missing |
-| `InitializeSRWLock` | ⬜ Missing |
-| `AcquireSRWLockExclusive` | ⬜ Missing |
-| `ReleaseSRWLockExclusive` | ⬜ Missing |
-| `CreateEventW` | ⬜ Missing |
-| `SetEvent` | ⬜ Missing |
-| `ResetEvent` | ⬜ Missing |
-| `WaitForSingleObject` | ⬜ Missing |
-| `WaitForMultipleObjects` | ⬜ Missing |
+| `InitializeCriticalSection` | ✅ Implemented |
+| `EnterCriticalSection` | ✅ Implemented |
+| `LeaveCriticalSection` | ✅ Implemented |
+| `DeleteCriticalSection` | ✅ Implemented |
+| `InitializeSRWLock` | ✅ Implemented |
+| `AcquireSRWLockExclusive` | ✅ Implemented |
+| `ReleaseSRWLockExclusive` | ✅ Implemented |
+| `CreateEventW` | ✅ Implemented |
+| `SetEvent` | ✅ Implemented |
+| `ResetEvent` | ✅ Implemented |
+| `WaitForSingleObject` | ✅ Implemented |
+| `WaitForMultipleObjects` | ✅ Implemented |
 
 </details>
 
-<details><summary><b>Time and process</b>: 0/11 implemented</summary>
+<details><summary><b>Time and process</b>: 11/11 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
-| `QueryPerformanceCounter` | ⬜ Missing |
-| `QueryPerformanceFrequency` | ⬜ Missing |
-| `GetSystemTimeAsFileTime` | ⬜ Missing |
-| `GetTickCount64` | ⬜ Missing |
-| `GetSystemInfo` | ⬜ Missing |
-| `GetLastError` | ⬜ Missing |
-| `SetLastError` | ⬜ Missing |
-| `OutputDebugStringW` | ⬜ Missing |
-| `GetModuleHandleW` | ⬜ Missing |
-| `GetProcAddress` | ⬜ Missing |
-| `LoadLibraryExW` | ⬜ Missing |
+| `QueryPerformanceCounter` | ✅ Implemented |
+| `QueryPerformanceFrequency` | ✅ Implemented |
+| `GetSystemTimeAsFileTime` | ✅ Implemented |
+| `GetTickCount64` | ✅ Implemented |
+| `GetSystemInfo` | ✅ Implemented |
+| `GetLastError` | ✅ Implemented |
+| `SetLastError` | ✅ Implemented |
+| `OutputDebugStringW` | ✅ Implemented |
+| `GetModuleHandleW` | ✅ Implemented |
+| `GetProcAddress` | ✅ Implemented |
+| `LoadLibraryExW` | ✅ Implemented |
 
 </details>
 

@@ -13,7 +13,8 @@ target_link_libraries(OpenEraApp
         OpenEra::Graphics
     PRIVATE
         OpenEra::CompileOptions
-        OpenEra::CoreCheck)
+        OpenEra::CoreCheck
+        winmm)
 
 # The openera command-line launcher. OpenEraTlsSlot.dll must sit next to it.
 add_executable(openera Main.cpp)
