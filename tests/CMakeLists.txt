@@ -20,6 +20,7 @@ add_executable(OpenEraTests
     ImageInitializerTests.cpp
     ImageMapperTests.cpp
     ImportResolverTests.cpp
+    LogWindowTests.cpp
     LoggerTests.cpp
     ModuleManagerTests.cpp
     PeReaderTests.cpp

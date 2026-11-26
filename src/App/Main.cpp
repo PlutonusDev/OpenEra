@@ -1,4 +1,5 @@
 // openera: command-line launcher for unpacked title folders.
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <exception>
@@ -14,6 +15,7 @@
 
 #include <Windows.h>
 
+#include "App/LogWindow.h"
 #include "App/TitleLauncher.h"
 #include "Core/Logger.h"
 #include "Loader/GameConfig.h"
@@ -44,6 +46,7 @@ Options for run:
   --no-start            Load and link only
   --log-level <level>   trace, info (default), warn or error
   --log-file <path>     Also append the log to a file
+  --log-window          Also show the log in a window; it stays open after the title ends
 )";
 
 struct CommandLine
@@ -54,6 +57,7 @@ struct CommandLine
     bool Start = true;
     LogLevel Level = LogLevel::Info;
     std::filesystem::path LogFile;
+    bool LogWindow = false;
 };
 
 std::string Narrow(const std::wstring& text)
@@ -114,6 +118,10 @@ std::optional<CommandLine> ParseCommandLine(const std::vector<std::wstring>& arg
         else if (option == "--exe" && hasValue)
         {
             line.ExecutableId = Narrow(arguments.at(++index));
+        }
+        else if (option == "--log-window")
+        {
+            line.LogWindow = true;
         }
         else if (option == "--log-file" && hasValue)
         {
@@ -179,6 +187,19 @@ int ShowInfo(const std::filesystem::path& folder, Logger& logger)
     return kExitSuccess;
 }
 
+// With the log in its own window, a console that only openera uses (one
+// Windows opened for it, rather than the terminal it was started from) just
+// shows a blank window, so let it go.
+void DetachOwnConsole() noexcept
+{
+    constexpr DWORD kProcessSlots = 2;
+    std::array<DWORD, kProcessSlots> processes{};
+    if (GetConsoleProcessList(processes.data(), kProcessSlots) == 1)
+    {
+        FreeConsole();
+    }
+}
+
 int Run(const CommandLine& line, Logger& logger)
 {
     OpenEra::App::LaunchOptions options;
@@ -215,12 +236,32 @@ int wmain(int argc, wchar_t** argv)
 
         Logger logger;
         logger.SetMinimumLevel(line->Level);
-        logger.AddSink(std::make_shared<OpenEra::Core::StderrSink>());
+        if (!line->LogWindow)
+        {
+            logger.AddSink(std::make_shared<OpenEra::Core::StderrSink>());
+        }
         if (!line->LogFile.empty())
         {
             logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(line->LogFile));
         }
-        return line->Command == "info" ? ShowInfo(line->Folder, logger) : Run(*line, logger);
+        if (line->Command == "info")
+        {
+            return ShowInfo(line->Folder, logger);
+        }
+        std::shared_ptr<OpenEra::App::LogWindowSink> window;
+        if (line->LogWindow)
+        {
+            window = std::make_shared<OpenEra::App::LogWindowSink>(L"OpenEra log");
+            logger.AddSink(window);
+            DetachOwnConsole();
+        }
+        const int exitCode = Run(*line, logger);
+        if (window && window->IsOpen())
+        {
+            logger.Info("openera: finished with exit code {}. Close the log window to exit.", exitCode);
+            window->WaitUntilClosed();
+        }
+        return exitCode;
     }
     catch (const std::exception& exception)
     {

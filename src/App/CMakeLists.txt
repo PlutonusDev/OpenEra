@@ -1,4 +1,6 @@
 add_library(OpenEraApp STATIC
+    LogWindow.h
+    LogWindow.cpp
     TitleLauncher.h
     TitleLauncher.cpp)
 add_library(OpenEra::App ALIAS OpenEraApp)
