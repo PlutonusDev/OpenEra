@@ -38,7 +38,7 @@ public:
     EhFixture()
     {
         REQUIRE(RegisterLoaderShims(m_shims));
-        m_manager = std::make_unique<ModuleManager>(DirectoryModuleReader(OPENERA_EH_IMAGE_DIR), m_shims, m_stubs,
+        m_manager = std::make_unique<ModuleManager>(DirectoryModuleReader(OPENERA_FIXTURE_DIR), m_shims, m_stubs,
                                                     *m_allocator, m_log, m_host.get());
         ModuleManager::SetActive(m_manager.get());
         REQUIRE(m_manager->Load(kImage) == ModuleError::None);

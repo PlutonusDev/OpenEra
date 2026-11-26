@@ -15,7 +15,9 @@ add_library(OpenEraLoader STATIC
     ModuleManager.cpp
     LoaderShims.cpp
     UnwindRegistration.h
-    UnwindRegistration.cpp)
+    UnwindRegistration.cpp
+    ImageInitializer.h
+    ImageInitializer.cpp)
 add_library(OpenEra::Loader ALIAS OpenEraLoader)
 
 # Core is public: it provides the shared include root ("Loader/PeReader.h").
@@ -26,3 +28,8 @@ target_link_libraries(OpenEraLoader
     PRIVATE
         OpenEra::CompileOptions
         OpenEra::CoreCheck)
+
+# Static TLS slot for mapped images, loaded by the OS loader (see ImageInitializer).
+add_library(OpenEraTlsSlot SHARED TlsSlot.cpp)
+target_link_libraries(OpenEraTlsSlot PRIVATE OpenEra::CompileOptions OpenEra::CoreCheck)
+add_dependencies(OpenEraLoader OpenEraTlsSlot)
