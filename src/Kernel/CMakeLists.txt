@@ -10,7 +10,9 @@ add_library(OpenEraKernel STATIC
     FileShims.h
     FileShims.cpp
     MemoryShims.h
-    MemoryShims.cpp)
+    MemoryShims.cpp
+    DebugOutputShims.h
+    DebugOutputShims.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
 
 target_link_libraries(OpenEraKernel

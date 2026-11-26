@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <Windows.h>
+#include <timeapi.h>
 
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
@@ -30,6 +31,7 @@ using Core::Logger;
 using Loader::ModuleManager;
 
 constexpr DWORD kMaxPath = 32'768;
+constexpr UINT kTimerResolutionMs = 1;
 
 constexpr std::array<std::string_view, 4> kPackageExtensions = {".xvc", ".msixvc", ".xvd", ".msixvcbundle"};
 
@@ -99,6 +101,34 @@ std::filesystem::path DefaultOverlay(std::string_view identity)
         localAppData.empty() ? std::filesystem::temp_directory_path() : std::filesystem::path(localAppData);
     return base / "OpenEra" / "Titles" / name / "Overlay";
 }
+
+// 1 ms timer resolution while a title runs: console titles expect Sleep and
+// timed waits to be that precise, and desktop Windows defaults to 15.6 ms.
+class TimerResolutionScope
+{
+public:
+    TimerResolutionScope() noexcept
+        : m_raised(timeBeginPeriod(kTimerResolutionMs) == TIMERR_NOERROR)
+    {
+    }
+    ~TimerResolutionScope()
+    {
+        if (m_raised)
+        {
+            timeEndPeriod(kTimerResolutionMs);
+        }
+    }
+
+    TimerResolutionScope(const TimerResolutionScope&) = delete;
+    TimerResolutionScope& operator=(const TimerResolutionScope&) = delete;
+    TimerResolutionScope(TimerResolutionScope&&) = delete;
+    TimerResolutionScope& operator=(TimerResolutionScope&&) = delete;
+
+    [[nodiscard]] bool Raised() const noexcept { return m_raised; }
+
+private:
+    bool m_raised;
+};
 
 // Keeps the file shims pointed at `files` while it's alive.
 class ActiveFileSystemScope
@@ -248,6 +278,11 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
         manager.SetInitializer(&*initializer);
     }
     const ActiveManagerScope active(manager);
+    const TimerResolutionScope timer;
+    if (!timer.Raised())
+    {
+        logger.Warn("Launch: couldn't raise the timer resolution to {} ms", kTimerResolutionMs);
+    }
 
     if (const auto error = manager.Load(location->FileName); error != Loader::ModuleError::None)
     {

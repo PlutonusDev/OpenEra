@@ -10,6 +10,7 @@
 
 #include <Windows.h>
 
+#include "Kernel/DebugOutputShims.h"
 #include "Kernel/FileShims.h"
 #include "Kernel/MemoryShims.h"
 #include "Kernel/ShimGuard.h"
@@ -200,7 +201,7 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
     for (const char* alias :
          {"api-ms-win-core-file-l1-1-0.dll", "api-ms-win-core-file-l1-2-0.dll", "api-ms-win-core-file-l1-2-1.dll",
           "api-ms-win-core-file-l1-2-2.dll", "api-ms-win-core-memory-l1-1-0.dll", "api-ms-win-core-memory-l1-1-1.dll",
-          "api-ms-win-core-memory-l1-1-2.dll"})
+          "api-ms-win-core-memory-l1-1-2.dll", "api-ms-win-core-debug-l1-1-0.dll", "api-ms-win-core-debug-l1-1-1.dll"})
     {
         kernel.AddAlias(alias);
     }
@@ -213,7 +214,8 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
                           kernel.Export("GetProcAddress", Kernel::ToShimProc(&GetProcAddressShim)) &&
                           kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
                           kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
-                          Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel);
+                          Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) &&
+                          Kernel::AddDebugOutputExports(kernel);
 
     Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");

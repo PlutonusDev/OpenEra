@@ -9,13 +9,15 @@ string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 # The DLLs use the release DLL C runtime, which host passthrough allows.
 add_library(OpenEraEhImage SHARED EhImage.cpp)
 add_library(OpenEraStartImage SHARED StartImage.cpp)
-set_target_properties(OpenEraEhImage OpenEraStartImage PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+add_library(OpenEraSyncImage SHARED SyncImage.cpp)
+set_target_properties(OpenEraEhImage OpenEraStartImage OpenEraSyncImage PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 set_target_properties(OpenEraEhImage PROPERTIES OUTPUT_NAME EhImage)
 set_target_properties(OpenEraStartImage PROPERTIES OUTPUT_NAME StartImage)
+set_target_properties(OpenEraSyncImage PROPERTIES OUTPUT_NAME SyncImage)
 
 add_executable(OpenEraEntryImage EntryImage.cpp)
 set_target_properties(OpenEraEntryImage PROPERTIES OUTPUT_NAME EntryImage)
 target_compile_options(OpenEraEntryImage PRIVATE /GS-)
 target_link_options(OpenEraEntryImage PRIVATE /NODEFAULTLIB /ENTRY:EntryImageStart /SUBSYSTEM:CONSOLE)
 
-add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraEntryImage)
+add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraEntryImage)

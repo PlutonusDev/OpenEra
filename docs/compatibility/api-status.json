@@ -163,34 +163,34 @@
         {
           "name": "Synchronization",
           "functions": {
-            "InitializeCriticalSection": "missing",
-            "EnterCriticalSection": "missing",
-            "LeaveCriticalSection": "missing",
-            "DeleteCriticalSection": "missing",
-            "InitializeSRWLock": "missing",
-            "AcquireSRWLockExclusive": "missing",
-            "ReleaseSRWLockExclusive": "missing",
-            "CreateEventW": "missing",
-            "SetEvent": "missing",
-            "ResetEvent": "missing",
-            "WaitForSingleObject": "missing",
-            "WaitForMultipleObjects": "missing"
+            "InitializeCriticalSection": "implemented",
+            "EnterCriticalSection": "implemented",
+            "LeaveCriticalSection": "implemented",
+            "DeleteCriticalSection": "implemented",
+            "InitializeSRWLock": "implemented",
+            "AcquireSRWLockExclusive": "implemented",
+            "ReleaseSRWLockExclusive": "implemented",
+            "CreateEventW": "implemented",
+            "SetEvent": "implemented",
+            "ResetEvent": "implemented",
+            "WaitForSingleObject": "implemented",
+            "WaitForMultipleObjects": "implemented"
           }
         },
         {
           "name": "Time and process",
           "functions": {
-            "QueryPerformanceCounter": "missing",
-            "QueryPerformanceFrequency": "missing",
-            "GetSystemTimeAsFileTime": "missing",
-            "GetTickCount64": "missing",
-            "GetSystemInfo": "missing",
-            "GetLastError": "missing",
-            "SetLastError": "missing",
-            "OutputDebugStringW": "missing",
-            "GetModuleHandleW": "missing",
-            "GetProcAddress": "missing",
-            "LoadLibraryExW": "missing"
+            "QueryPerformanceCounter": "implemented",
+            "QueryPerformanceFrequency": "implemented",
+            "GetSystemTimeAsFileTime": "implemented",
+            "GetTickCount64": "implemented",
+            "GetSystemInfo": "implemented",
+            "GetLastError": "implemented",
+            "SetLastError": "implemented",
+            "OutputDebugStringW": "implemented",
+            "GetModuleHandleW": "implemented",
+            "GetProcAddress": "implemented",
+            "LoadLibraryExW": "implemented"
           }
         }
       ]
