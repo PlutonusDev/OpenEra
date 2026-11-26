@@ -8,6 +8,7 @@ target_link_libraries(OpenEraApp
         OpenEra::Core
         OpenEra::Loader
         OpenEra::Kernel
+        OpenEra::Graphics
     PRIVATE
         OpenEra::CompileOptions
         OpenEra::CoreCheck)

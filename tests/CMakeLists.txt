@@ -13,9 +13,11 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
 add_executable(OpenEraTests
+    AdapterSelectionTests.cpp
     ByteReaderTests.cpp
     ExceptionTests.cpp
     GameConfigTests.cpp
+    GraphicsShimTests.cpp
     HostModulesTests.cpp
     ImageInitializerTests.cpp
     ImageMapperTests.cpp
@@ -32,6 +34,7 @@ add_executable(OpenEraTests
 target_link_libraries(OpenEraTests PRIVATE
     OpenEra::App
     OpenEra::Core
+    OpenEra::Graphics
     OpenEra::Loader
     OpenEra::Kernel
     OpenEra::CompileOptions

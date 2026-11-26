@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Core/Logger.h"
+#include "Graphics/GraphicsShims.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
 #include "Loader/HostModules.h"
@@ -174,7 +175,7 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
                 config.Config->TitleId, executable->Name);
 
     Kernel::ShimRegistry shims;
-    if (!Loader::RegisterLoaderShims(shims))
+    if (!Loader::RegisterLoaderShims(shims) || !Graphics::RegisterGraphicsShims(shims))
     {
         result.Error = LaunchError::LoadFailed;
         return result;
