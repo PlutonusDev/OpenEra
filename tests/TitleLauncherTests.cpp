@@ -35,6 +35,7 @@ public:
     {
         std::error_code error;
         std::filesystem::remove_all(m_path, error);
+        std::filesystem::remove_all(Overlay(), error);
     }
 
     TitleFolder(const TitleFolder&) = delete;
@@ -62,6 +63,7 @@ public:
     }
 
     [[nodiscard]] const std::filesystem::path& Path() const noexcept { return m_path; }
+    [[nodiscard]] std::filesystem::path Overlay() const { return m_path.native() + L"-overlay"; }
 
 private:
     std::filesystem::path m_path;
@@ -73,7 +75,8 @@ LaunchOptions OptionsFor(const TitleFolder& folder)
             .ExecutableId = {},
             .Start = true,
             .TlsSlot = OPENERA_TLS_SLOT,
-            .WorkDirectory = std::filesystem::temp_directory_path() / "OpenEraTests"};
+            .WorkDirectory = std::filesystem::temp_directory_path() / "OpenEraTests",
+            .OverlayDirectory = folder.Overlay()};
 }
 } // namespace
 

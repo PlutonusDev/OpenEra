@@ -31,10 +31,10 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Kernel | Unimplemented-call registry | ✅ Done | #8 |
 | Kernel | Shim module framework and exception guards | ✅ Done | #21 |
 | Kernel | Map console system modules onto shims and host DLLs | ⚪ Planned | #53 |
-| Kernel | Path redirection | ⚪ Planned | #22 |
-| Kernel | Copy-on-write file layer over the title folder | ⚪ Planned | #54 |
+| Kernel | Path redirection | 🟡 In progress | #22 |
+| Kernel | Copy-on-write file layer over the title folder | ✅ Done | #54 |
 | Kernel | DirectStorage | ⚪ Planned | #56 |
-| Kernel | Memory management | ⚪ Planned | #23 |
+| Kernel | Memory management | 🟡 In progress | #23 |
 | Kernel | Threading, synchronization and timing | ⚪ Planned | #24 |
 | Kernel | XGameRuntime and XTaskQueue | ⚪ Planned | #25 |
 | Kernel | XUser and system services | ⚪ Planned | #26 |
@@ -67,8 +67,8 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | GDK runtime | XGameSave | 0 | 0 | 0 | 13 | 0.0% |
 | GDK runtime | XNetworking | 0 | 0 | 0 | 3 | 0.0% |
 | GDK runtime | XMem / XThread | 0 | 0 | 0 | 5 | 0.0% |
-| Windows system | Files | 0 | 0 | 0 | 12 | 0.0% |
-| Windows system | Memory | 0 | 0 | 0 | 7 | 0.0% |
+| Windows system | Files | 12 | 0 | 0 | 0 | 100.0% |
+| Windows system | Memory | 7 | 0 | 0 | 0 | 100.0% |
 | Windows system | Threads and TLS | 0 | 0 | 0 | 13 | 0.0% |
 | Windows system | Synchronization | 0 | 0 | 0 | 12 | 0.0% |
 | Windows system | Time and process | 0 | 0 | 0 | 11 | 0.0% |
@@ -77,7 +77,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | Direct3D 12 | ID3D12CommandQueue | 0 | 0 | 0 | 3 | 0.0% |
 | Input and audio | GameInput | 0 | 0 | 0 | 12 | 0.0% |
 | Input and audio | XAudio2 | 0 | 0 | 0 | 11 | 0.0% |
-| **Total** | | **0** | **0** | **0** | **192** | **0.0%** |
+| **Total** | | **19** | **0** | **0** | **173** | **9.9%** |
 
 ### GDK runtime
 
@@ -202,36 +202,36 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 ### Windows system
 
-<details><summary><b>Files</b>: 0/12 implemented</summary>
+<details><summary><b>Files</b>: 12/12 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
-| `CreateFileW` | ⬜ Missing |
-| `ReadFile` | ⬜ Missing |
-| `WriteFile` | ⬜ Missing |
-| `CloseHandle` | ⬜ Missing |
-| `GetFileSizeEx` | ⬜ Missing |
-| `SetFilePointerEx` | ⬜ Missing |
-| `GetFileAttributesW` | ⬜ Missing |
-| `FindFirstFileW` | ⬜ Missing |
-| `FindNextFileW` | ⬜ Missing |
-| `FindClose` | ⬜ Missing |
-| `CreateDirectoryW` | ⬜ Missing |
-| `DeleteFileW` | ⬜ Missing |
+| `CreateFileW` | ✅ Implemented |
+| `ReadFile` | ✅ Implemented |
+| `WriteFile` | ✅ Implemented |
+| `CloseHandle` | ✅ Implemented |
+| `GetFileSizeEx` | ✅ Implemented |
+| `SetFilePointerEx` | ✅ Implemented |
+| `GetFileAttributesW` | ✅ Implemented |
+| `FindFirstFileW` | ✅ Implemented |
+| `FindNextFileW` | ✅ Implemented |
+| `FindClose` | ✅ Implemented |
+| `CreateDirectoryW` | ✅ Implemented |
+| `DeleteFileW` | ✅ Implemented |
 
 </details>
 
-<details><summary><b>Memory</b>: 0/7 implemented</summary>
+<details><summary><b>Memory</b>: 7/7 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
-| `VirtualAlloc` | ⬜ Missing |
-| `VirtualFree` | ⬜ Missing |
-| `VirtualProtect` | ⬜ Missing |
-| `VirtualQuery` | ⬜ Missing |
-| `HeapAlloc` | ⬜ Missing |
-| `HeapFree` | ⬜ Missing |
-| `GetProcessHeap` | ⬜ Missing |
+| `VirtualAlloc` | ✅ Implemented |
+| `VirtualFree` | ✅ Implemented |
+| `VirtualProtect` | ✅ Implemented |
+| `VirtualQuery` | ✅ Implemented |
+| `HeapAlloc` | ✅ Implemented |
+| `HeapFree` | ✅ Implemented |
+| `GetProcessHeap` | ✅ Implemented |
 
 </details>
 

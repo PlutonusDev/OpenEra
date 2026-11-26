@@ -48,6 +48,9 @@ struct LaunchOptions
     bool Start = true;                   // False: map and link only.
     std::filesystem::path TlsSlot;       // Empty: next to the running executable.
     std::filesystem::path WorkDirectory; // Empty: OpenEra under the temp directory.
+    // Where the title's writes go (the folder itself is never modified).
+    // Empty: %LOCALAPPDATA%OpenEraTitles<identity>Overlay.
+    std::filesystem::path OverlayDirectory;
 };
 
 struct LaunchResult

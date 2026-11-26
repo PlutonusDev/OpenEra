@@ -4,7 +4,13 @@ add_library(OpenEraKernel STATIC
     ShimModule.h
     ShimModule.cpp
     StubRegistry.h
-    StubRegistry.cpp)
+    StubRegistry.cpp
+    TitleFileSystem.h
+    TitleFileSystem.cpp
+    FileShims.h
+    FileShims.cpp
+    MemoryShims.h
+    MemoryShims.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
 
 target_link_libraries(OpenEraKernel
