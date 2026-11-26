@@ -195,6 +195,22 @@ TEST_CASE("DefaultStubReturnValue picks a not-implemented value per stub kind", 
     CHECK(DefaultStubReturnValue(StubKind::NtSyscall) == 0xC0000002U);
 }
 
+TEST_CASE("Stubs for COM and Gaming Runtime modules report failure, not success", "[ImportResolver]")
+{
+    CHECK(StubKindForModule("XGameRuntime.dll") == StubKind::GameCoreApi);
+    CHECK(StubKindForModule("gameinput") == StubKind::GameCoreApi);
+    CHECK(StubKindForModule("dxgi.dll") == StubKind::Win32Import);
+    CHECK(StubKindForModule("Missing.dll") == StubKind::Win32Import);
+
+    CHECK(StubReturnValue(StubKind::Win32Import, "DXGI.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "d3d12.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "xaudio2_9.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "dstorage") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "user32.dll") == 0);
+    CHECK(StubReturnValue(StubKind::GameCoreApi, "xgameruntime.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::NtSyscall, "dxgi.dll") == 0xC0000002U);
+}
+
 TEST_CASE("ResolveImports binds shims by name, ordinal and delay-load", "[ImportResolver]")
 {
     Fixture fixture;
