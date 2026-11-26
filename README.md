@@ -66,7 +66,7 @@ OpenEra is in **early development**. No commercial titles run yet.
 | PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs, registers their unwind data so exceptions work, and starts them (static TLS, TLS callbacks, DllMain and the entry point). |
 | Run an unpacked title folder | `App` | ✅ Done | `openera run` reads `MicrosoftGame.config` and starts the title. |
 | Console system modules | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; module mapping and API shims next. |
-| Direct3D 12.x translation | `Graphics` | ⚪ Planned | COM wrappers, command list translation and presentation. |
+| Direct3D 12.x translation | `Graphics` | 🟡 In progress | Desktop DXGI / Direct3D 12 run natively on the NVIDIA or AMD GPU (`--gpu` to choose). D3D12.x COM wrappers, command list translation and presentation next. |
 | Shader recompiler | `Graphics` | ⚪ Planned | RDNA2 shader code to DXIL. |
 | Storage | `Kernel` | ⚪ Planned | Path redirection, copy-on-write file layer and DirectStorage. |
 | Controller input | `Input` | ⚪ Planned | GameInput gamepad mapping. |
@@ -112,7 +112,7 @@ build\src\App\openera.exe info <title folder>
 build\src\App\openera.exe run <title folder>
 ```
 
-`run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`. Run `openera --help` for the full list.
+`run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. `--gpu` picks the GPU: by default OpenEra puts the NVIDIA or AMD GPU in front of the title (on hybrid laptops too), and `--gpu nvidia|amd|intel|<index>` overrides that. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`. Run `openera --help` for the full list.
 
 After the title runs, `openera` exits with the title's own exit code. Otherwise it exits with:
 

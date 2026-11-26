@@ -38,6 +38,7 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Kernel | Threading, synchronization and timing | ⚪ Planned | #24 |
 | Kernel | XGameRuntime and XTaskQueue | ⚪ Planned | #25 |
 | Kernel | XUser and system services | ⚪ Planned | #26 |
+| Graphics | Desktop DXGI / Direct3D 12 on the preferred GPU (NVIDIA or AMD first, `--gpu` to choose) | ✅ Done | #27 |
 | Graphics | D3D12.x device and COM wrappers | ⚪ Planned | #27 |
 | Graphics | Command list and resource translation | ⚪ Planned | #28 |
 | Graphics | RDNA2 shader recompiler (to DXIL) | ⚪ Planned | #55 |

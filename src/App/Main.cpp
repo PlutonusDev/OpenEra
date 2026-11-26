@@ -16,7 +16,19 @@
 
 #include "App/TitleLauncher.h"
 #include "Core/Logger.h"
+#include "Graphics/AdapterSelection.h"
 #include "Loader/GameConfig.h"
+
+// Ask hybrid-graphics drivers for the high-performance GPU, as NVIDIA (Optimus
+// rendering policies) and AMD (PowerXpress) document. The drivers look for these
+// exports in the process executable, which is openera.exe rather than the title.
+extern "C"
+{
+    // NOLINTBEGIN(readability-identifier-naming): names fixed by the drivers.
+    __declspec(dllexport) extern const DWORD NvOptimusEnablement = 1;
+    __declspec(dllexport) extern const int AmdPowerXpressRequestHighPerformance = 1;
+    // NOLINTEND(readability-identifier-naming)
+}
 
 namespace
 {
@@ -42,6 +54,7 @@ The title folder is an unpacked title: the folder containing MicrosoftGame.confi
 Options for run:
   --exe <Id>            Executable to start (default: the Xbox Series X|S one)
   --no-start            Load and link only
+  --gpu <choice>        auto (default: the NVIDIA or AMD GPU), nvidia, amd, intel or an adapter index
   --log-level <level>   trace, info (default), warn or error
   --log-file <path>     Also append the log to a file
 )";
@@ -54,6 +67,7 @@ struct CommandLine
     bool Start = true;
     LogLevel Level = LogLevel::Info;
     std::filesystem::path LogFile;
+    OpenEra::Graphics::GpuPreference Gpu;
 };
 
 std::string Narrow(const std::wstring& text)
@@ -114,6 +128,15 @@ std::optional<CommandLine> ParseCommandLine(const std::vector<std::wstring>& arg
         else if (option == "--exe" && hasValue)
         {
             line.ExecutableId = Narrow(arguments.at(++index));
+        }
+        else if (option == "--gpu" && hasValue)
+        {
+            const auto gpu = OpenEra::Graphics::ParseGpuPreference(Narrow(arguments.at(++index)));
+            if (!gpu)
+            {
+                return std::nullopt;
+            }
+            line.Gpu = *gpu;
         }
         else if (option == "--log-file" && hasValue)
         {
@@ -185,6 +208,7 @@ int Run(const CommandLine& line, Logger& logger)
     options.Folder = line.Folder;
     options.ExecutableId = line.ExecutableId;
     options.Start = line.Start;
+    OpenEra::Graphics::SetGpuPreference(line.Gpu);
     const auto result = OpenEra::App::RunTitleFolder(options, logger);
     if (result.Error != LaunchError::None)
     {
@@ -213,7 +237,8 @@ int wmain(int argc, wchar_t** argv)
             return kExitUsage;
         }
 
-        Logger logger;
+        // The default logger, so shims that log through it (graphics) reach the same sinks.
+        Logger& logger = OpenEra::Core::DefaultLogger();
         logger.SetMinimumLevel(line->Level);
         logger.AddSink(std::make_shared<OpenEra::Core::StderrSink>());
         if (!line->LogFile.empty())
