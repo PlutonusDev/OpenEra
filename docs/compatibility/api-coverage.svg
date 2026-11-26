@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="767" viewBox="0 0 1000 767" role="img" aria-label="OpenEra API coverage: 0 of 192 tracked functions implemented (0.0%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="767" viewBox="0 0 1000 767" role="img" aria-label="OpenEra API coverage: 19 of 192 tracked functions implemented (9.9%)">
   <style>
     .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}
     .title{font:600 20px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.h2{font:600 15px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
@@ -10,16 +10,17 @@
   </style>
   <rect class="bg" x="0.5" y="0.5" width="999" height="766" rx="12"/>
   <text class="title" x="28" y="48">OpenEra API coverage</text>
-  <text class="meta" x="28" y="70">0 of 192 tracked functions implemented (0.0%)</text>
+  <text class="meta" x="28" y="70">19 of 192 tracked functions implemented (9.9%)</text>
   <rect class="missing" x="874" y="37" width="12" height="12" rx="3"/>
-  <text class="meta" x="891" y="48">Missing 192</text>
+  <text class="meta" x="891" y="48">Missing 173</text>
   <rect class="stubbed" x="777" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="794" y="48">Stubbed 0</text>
   <rect class="partial" x="680" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="697" y="48">Partial 0</text>
-  <rect class="implemented" x="554" y="37" width="12" height="12" rx="3"/>
-  <text class="meta" x="571" y="48">Implemented 0</text>
+  <rect class="implemented" x="547" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="564" y="48">Implemented 19</text>
   <rect class="track" x="28" y="88" width="944" height="8" rx="4"/>
+  <rect class="implemented" x="28" y="88" width="93" height="8" rx="4"/>
   <text class="h2" x="28" y="134">GDK runtime</text>
   <text class="meta" x="972" y="134" text-anchor="end">0/70 implemented (0.0%)</text>
   <rect class="track" x="28" y="144" width="944" height="4" rx="2"/>
@@ -129,8 +130,9 @@
     <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XNetworkingUnregisterConnectivityHintChanged: Missing</title></rect>
   </g>
   <text class="h2" x="28" y="360">Windows system</text>
-  <text class="meta" x="972" y="360" text-anchor="end">0/55 implemented (0.0%)</text>
+  <text class="meta" x="972" y="360" text-anchor="end">19/55 implemented (34.5%)</text>
   <rect class="track" x="28" y="370" width="944" height="4" rx="2"/>
+  <rect class="implemented" x="28" y="370" width="326" height="4" rx="2"/>
   <g transform="translate(28,384)">
     <rect class="card" width="204" height="73" rx="8"/>
     <text class="label" x="12" y="23">Threads and TLS</text>
@@ -152,19 +154,19 @@
   <g transform="translate(244,384)">
     <rect class="card" width="132" height="73" rx="8"/>
     <text class="label" x="12" y="23">Files</text>
-    <text class="meta small" x="120" y="23" text-anchor="end">0/12</text>
-    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Missing</title></rect>
-    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Missing</title></rect>
-    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Missing</title></rect>
-    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>CloseHandle: Missing</title></rect>
-    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>GetFileSizeEx: Missing</title></rect>
-    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>SetFilePointerEx: Missing</title></rect>
-    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>GetFileAttributesW: Missing</title></rect>
-    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>FindFirstFileW: Missing</title></rect>
-    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>FindNextFileW: Missing</title></rect>
-    <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>FindClose: Missing</title></rect>
-    <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Missing</title></rect>
-    <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Missing</title></rect>
+    <text class="meta small" x="120" y="23" text-anchor="end">12/12</text>
+    <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Implemented</title></rect>
+    <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Implemented</title></rect>
+    <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Implemented</title></rect>
+    <rect class="implemented" x="57" y="34" width="12" height="12" rx="2"><title>CloseHandle: Implemented</title></rect>
+    <rect class="implemented" x="72" y="34" width="12" height="12" rx="2"><title>GetFileSizeEx: Implemented</title></rect>
+    <rect class="implemented" x="87" y="34" width="12" height="12" rx="2"><title>SetFilePointerEx: Implemented</title></rect>
+    <rect class="implemented" x="102" y="34" width="12" height="12" rx="2"><title>GetFileAttributesW: Implemented</title></rect>
+    <rect class="implemented" x="12" y="49" width="12" height="12" rx="2"><title>FindFirstFileW: Implemented</title></rect>
+    <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>FindNextFileW: Implemented</title></rect>
+    <rect class="implemented" x="42" y="49" width="12" height="12" rx="2"><title>FindClose: Implemented</title></rect>
+    <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Implemented</title></rect>
+    <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Implemented</title></rect>
   </g>
   <g transform="translate(388,384)">
     <rect class="card" width="204" height="73" rx="8"/>
@@ -202,14 +204,14 @@
   <g transform="translate(838,384)">
     <rect class="card" width="134" height="73" rx="8"/>
     <text class="label" x="12" y="23">Memory</text>
-    <text class="meta small" x="122" y="23" text-anchor="end">0/7</text>
-    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>VirtualAlloc: Missing</title></rect>
-    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>VirtualFree: Missing</title></rect>
-    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>VirtualProtect: Missing</title></rect>
-    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>VirtualQuery: Missing</title></rect>
-    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>HeapAlloc: Missing</title></rect>
-    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>HeapFree: Missing</title></rect>
-    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>GetProcessHeap: Missing</title></rect>
+    <text class="meta small" x="122" y="23" text-anchor="end">7/7</text>
+    <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>VirtualAlloc: Implemented</title></rect>
+    <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>VirtualFree: Implemented</title></rect>
+    <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>VirtualProtect: Implemented</title></rect>
+    <rect class="implemented" x="57" y="34" width="12" height="12" rx="2"><title>VirtualQuery: Implemented</title></rect>
+    <rect class="implemented" x="72" y="34" width="12" height="12" rx="2"><title>HeapAlloc: Implemented</title></rect>
+    <rect class="implemented" x="87" y="34" width="12" height="12" rx="2"><title>HeapFree: Implemented</title></rect>
+    <rect class="implemented" x="102" y="34" width="12" height="12" rx="2"><title>GetProcessHeap: Implemented</title></rect>
   </g>
   <text class="h2" x="28" y="501">Direct3D 12</text>
   <text class="meta" x="972" y="501" text-anchor="end">0/44 implemented (0.0%)</text>

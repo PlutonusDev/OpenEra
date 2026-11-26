@@ -10,10 +10,13 @@
 #include <utility>
 #include <vector>
 
+#include <Windows.h>
+
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
+#include "Kernel/TitleFileSystem.h"
 #include "Loader/HostModules.h"
 #include "Loader/ImageInitializer.h"
 #include "Loader/ImageMemory.h"
@@ -25,6 +28,8 @@ namespace
 {
 using Core::Logger;
 using Loader::ModuleManager;
+
+constexpr DWORD kMaxPath = 32'768;
 
 constexpr std::array<std::string_view, 4> kPackageExtensions = {".xvc", ".msixvc", ".xvd", ".msixvcbundle"};
 
@@ -72,6 +77,44 @@ std::optional<ExecutableLocation> LocateExecutable(std::string_view name)
     return ExecutableLocation{.Directory = path.parent_path(),
                               .FileName = std::string(fileName.begin(), fileName.end())};
 }
+
+// Default overlay for a title: under %LOCALAPPDATA%, named after its identity.
+std::filesystem::path DefaultOverlay(std::string_view identity)
+{
+    std::string name;
+    for (const char value : identity)
+    {
+        const bool safe = (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+                          (value >= '0' && value <= '9') || value == '.' || value == '-' || value == '_';
+        name += safe ? value : '_';
+    }
+    if (name.empty() || name.find_first_not_of('.') == std::string::npos)
+    {
+        name = "Title";
+    }
+    std::wstring localAppData(kMaxPath, L'\0');
+    const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData.data(), kMaxPath);
+    localAppData.resize(length < kMaxPath ? length : 0);
+    const std::filesystem::path base =
+        localAppData.empty() ? std::filesystem::temp_directory_path() : std::filesystem::path(localAppData);
+    return base / "OpenEra" / "Titles" / name / "Overlay";
+}
+
+// Keeps the file shims pointed at `files` while it's alive.
+class ActiveFileSystemScope
+{
+public:
+    explicit ActiveFileSystemScope(Kernel::TitleFileSystem& files) noexcept
+    {
+        Kernel::TitleFileSystem::SetActive(&files);
+    }
+    ~ActiveFileSystemScope() { Kernel::TitleFileSystem::SetActive(nullptr); }
+
+    ActiveFileSystemScope(const ActiveFileSystemScope&) = delete;
+    ActiveFileSystemScope& operator=(const ActiveFileSystemScope&) = delete;
+    ActiveFileSystemScope(ActiveFileSystemScope&&) = delete;
+    ActiveFileSystemScope& operator=(ActiveFileSystemScope&&) = delete;
+};
 
 // Keeps the loader shims pointed at `manager` while it's alive.
 class ActiveManagerScope
@@ -181,6 +224,11 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
         return result;
     }
     Kernel::StubRegistry stubs(logger);
+    Kernel::TitleFileSystem files(options.Folder, options.OverlayDirectory.empty()
+                                                      ? DefaultOverlay(config.Config->IdentityName)
+                                                      : options.OverlayDirectory);
+    const ActiveFileSystemScope activeFiles(files);
+    logger.Info("Launch: title writes go to {}", files.OverlayRoot().string());
     const auto allocator = Loader::CreateVirtualImageAllocator();
     const auto host = Loader::HostModules::CreateDefault();
 

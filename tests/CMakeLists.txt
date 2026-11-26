@@ -16,6 +16,7 @@ add_executable(OpenEraTests
     AdapterSelectionTests.cpp
     ByteReaderTests.cpp
     ExceptionTests.cpp
+    FileMemoryShimTests.cpp
     GameConfigTests.cpp
     GraphicsShimTests.cpp
     HostModulesTests.cpp
@@ -28,6 +29,7 @@ add_executable(OpenEraTests
     PeReaderTests.cpp
     ShimModuleTests.cpp
     StubRegistryTests.cpp
+    TitleFileSystemTests.cpp
     TitleLauncherTests.cpp
     XmlTests.cpp
     XvdReaderTests.cpp)

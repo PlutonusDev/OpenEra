@@ -160,7 +160,9 @@ private:
 // Registers the loader shims, backed by ModuleManager::Active():
 // - kernel32.dll (aliases kernelbase and the libraryloader API sets):
 //   LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W}, GetProcAddress,
-//   FreeLibrary and RtlPcToFileHeader.
+//   FreeLibrary and RtlPcToFileHeader, plus the file (Kernel::AddFileExports)
+//   and memory (Kernel::AddMemoryExports) shims, also under the file and
+//   memory API sets.
 // - ntdll.dll (aliases the rtlsupport API sets): RtlPcToFileHeader.
 // - vcruntime140.dll: _CxxThrowException, which records the thrower's image
 //   base for title modules the OS loader doesn't know.

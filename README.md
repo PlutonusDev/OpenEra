@@ -68,7 +68,7 @@ OpenEra is in **early development**. No commercial titles run yet.
 | Console system modules | `Kernel` | 🟡 In progress | Shim framework and unimplemented-call registry in place; module mapping and API shims next. |
 | Direct3D 12.x translation | `Graphics` | 🟡 In progress | Desktop DXGI / Direct3D 12 run natively on the NVIDIA or AMD GPU (`--gpu` to choose). D3D12.x COM wrappers, command list translation and presentation next. |
 | Shader recompiler | `Graphics` | ⚪ Planned | RDNA2 shader code to DXIL. |
-| Storage | `Kernel` | ⚪ Planned | Path redirection, copy-on-write file layer and DirectStorage. |
+| Storage | `Kernel` | 🟡 In progress | Copy-on-write layer over the title folder: the title's writes go to a per-title overlay, so its folder is never modified. Console path redirection and DirectStorage next. |
 | Controller input | `Input` | ⚪ Planned | GameInput gamepad mapping. |
 | Audio subsystem | `Audio` | ⚪ Planned | XMA2 decoding and audio endpoint mapping. |
 | XVD / XVC container parser | `Loader` | ✅ Done | Header validation, section layout and XVC region table. Unencrypted only; not needed for M1. |
@@ -113,6 +113,8 @@ build\src\App\openera.exe run <title folder>
 ```
 
 `run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. `--gpu` picks the GPU: by default OpenEra puts the NVIDIA or AMD GPU in front of the title (on hybrid laptops too), and `--gpu nvidia|amd|intel|<index>` overrides that. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`, and `--log-window` shows the log in its own window, coloured by level, that stays open after the title ends. Run `openera --help` for the full list.
+
+OpenEra never modifies the title folder: anything the title writes, creates or deletes there goes to a per-title overlay under `%LOCALAPPDATA%\OpenEra\Titles\<identity>\Overlay`, and the title sees the two merged. Delete that folder to reset the title.
 
 After the title runs, `openera` exits with the title's own exit code. Otherwise it exits with:
 

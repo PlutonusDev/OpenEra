@@ -116,30 +116,30 @@
         {
           "name": "Files",
           "functions": {
-            "CreateFileW": "missing",
-            "ReadFile": "missing",
-            "WriteFile": "missing",
-            "CloseHandle": "missing",
-            "GetFileSizeEx": "missing",
-            "SetFilePointerEx": "missing",
-            "GetFileAttributesW": "missing",
-            "FindFirstFileW": "missing",
-            "FindNextFileW": "missing",
-            "FindClose": "missing",
-            "CreateDirectoryW": "missing",
-            "DeleteFileW": "missing"
+            "CreateFileW": "implemented",
+            "ReadFile": "implemented",
+            "WriteFile": "implemented",
+            "CloseHandle": "implemented",
+            "GetFileSizeEx": "implemented",
+            "SetFilePointerEx": "implemented",
+            "GetFileAttributesW": "implemented",
+            "FindFirstFileW": "implemented",
+            "FindNextFileW": "implemented",
+            "FindClose": "implemented",
+            "CreateDirectoryW": "implemented",
+            "DeleteFileW": "implemented"
           }
         },
         {
           "name": "Memory",
           "functions": {
-            "VirtualAlloc": "missing",
-            "VirtualFree": "missing",
-            "VirtualProtect": "missing",
-            "VirtualQuery": "missing",
-            "HeapAlloc": "missing",
-            "HeapFree": "missing",
-            "GetProcessHeap": "missing"
+            "VirtualAlloc": "implemented",
+            "VirtualFree": "implemented",
+            "VirtualProtect": "implemented",
+            "VirtualQuery": "implemented",
+            "HeapAlloc": "implemented",
+            "HeapFree": "implemented",
+            "GetProcessHeap": "implemented"
           }
         },
         {
