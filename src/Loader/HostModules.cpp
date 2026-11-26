@@ -59,8 +59,9 @@ HostModules::HostModules(const std::vector<std::string>& modules, const std::vec
 
 std::vector<std::string> HostModules::DefaultModules()
 {
-    // Plain Win32, Winsock and the Visual C++ / Universal C runtimes. Graphics,
-    // audio, input and GDK modules are deliberately absent: they need shims.
+    // Plain Win32, Winsock and the Visual C++ / Universal C runtimes, plus
+    // desktop DXGI / Direct3D 12 behind OpenEra's graphics shims (adapter
+    // choice). Audio, input and GDK modules are deliberately absent: they need shims.
     return {"kernel32",
             "kernelbase",
             "user32",
@@ -79,7 +80,9 @@ std::vector<std::string> HostModules::DefaultModules()
             "msvcp140_1",
             "msvcp140_2",
             "msvcp140_atomic_wait",
-            "msvcp140_codecvt_ids"};
+            "msvcp140_codecvt_ids",
+            "dxgi",
+            "d3d12"};
 }
 
 std::vector<std::string> HostModules::DefaultPrefixes()

@@ -40,7 +40,7 @@ TEST_CASE("The default allowlist covers Win32 and the C runtime only", "[HostMod
         CHECK(host->IsAllowed(allowed));
     }
     for (const char* refused :
-         {"d3d12.dll", "dxgi.dll", "XAudio2_9.dll", "GameInput.dll", "xgameruntime.dll", "ntdll.dll", "game.dll", ""})
+         {"d3d12_x.dll", "XAudio2_9.dll", "GameInput.dll", "xgameruntime.dll", "ntdll.dll", "game.dll", ""})
     {
         INFO(refused);
         CHECK_FALSE(host->IsAllowed(refused));
@@ -80,7 +80,7 @@ TEST_CASE("FindExport binds to the host's real exports", "[HostModules]")
 
     CHECK_FALSE(host->FindExport("kernel32.dll", "NoSuchExportInKernel32").has_value());
     CHECK_FALSE(host->FindExport("kernel32.dll", "").has_value());
-    CHECK_FALSE(host->FindExport("d3d12.dll", "D3D12CreateDevice").has_value()); // Exists, but not allowed.
+    CHECK_FALSE(host->FindExport("xaudio2_9.dll", "XAudio2Create").has_value()); // Exists, but not allowed.
 }
 
 TEST_CASE("Handle caches modules and maps handles back to names", "[HostModules]")
