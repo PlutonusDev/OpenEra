@@ -5,15 +5,27 @@
 
 .PARAMETER Check
     Don't write anything; exit 1 if either output is out of date.
+
+.PARAMETER StatusFile
+    StatusFile, ImageFile, Title, Marker and Generator describe another
+    coverage set (paths relative to the repository root).
+    tools/Update-GdkxCoverage.ps1 uses them for the console-only APIs.
 #>
-param([switch]$Check)
+param(
+    [switch]$Check,
+    [string]$StatusFile = 'docs/compatibility/api-status.json',
+    [string]$ImageFile = 'docs/compatibility/api-coverage.svg',
+    [string]$Title = 'OpenEra API coverage',
+    [string]$Marker = 'api-matrix',
+    [string]$Generator = 'tools/Update-Compatibility.ps1'
+)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $root = Split-Path -Parent $PSScriptRoot
-$dataPath = Join-Path $root 'docs/compatibility/api-status.json'
-$svgPath = Join-Path $root 'docs/compatibility/api-coverage.svg'
+$dataPath = Join-Path $root $StatusFile
+$svgPath = Join-Path $root $ImageFile
 $markdownPath = Join-Path $root 'COMPATIBILITY.md'
 $invariant = [Globalization.CultureInfo]::InvariantCulture
 $utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -56,6 +68,7 @@ function New-Counts
 $data = Get-Content -Raw -Encoding UTF8 $dataPath | ConvertFrom-Json
 $categories = New-Object System.Collections.Generic.List[object]
 $grand = New-Counts
+$hasSources = $false
 foreach ($category in $data.categories)
 {
     $categoryCounts = New-Counts
@@ -71,7 +84,14 @@ foreach ($category in $data.categories)
             {
                 throw "Unknown status '$status' for $($module.name)/$($property.Name) in $dataPath"
             }
-            $functions.Add([pscustomobject]@{ Name = $property.Name; Status = $status })
+            # Optional "sources": the reports each function was seen in.
+            $sources = @()
+            if ($module.PSObject.Properties['sources'] -and $module.sources.PSObject.Properties[$property.Name])
+            {
+                $sources = @($module.sources.($property.Name))
+                $hasSources = $true
+            }
+            $functions.Add([pscustomobject]@{ Name = $property.Name; Status = $status; Sources = $sources })
             $counts[$status]++
             $counts.total++
         }
@@ -113,7 +133,7 @@ function Add-StatusBar([int]$X, [int]$Y, [int]$BarWidth, [int]$Height, $Counts)
 
 # Header and legend.
 $y = $margin
-Add-Line ('  <text class="title" x="{0}" y="{1}">OpenEra API coverage</text>' -f $margin, ($y + 20))
+Add-Line ('  <text class="title" x="{0}" y="{1}">{2}</text>' -f $margin, ($y + 20), (ConvertTo-Xml $Title))
 $summary = '{0} of {1} tracked functions implemented ({2})' -f $grand.implemented, $grand.total, (Format-Percent $grand.implemented $grand.total)
 Add-Line ('  <text class="meta" x="{0}" y="{1}">{2}</text>' -f $margin, ($y + 42), (ConvertTo-Xml $summary))
 
@@ -130,6 +150,13 @@ for ($i = $statusOrder.Count - 1; $i -ge 0; $i--)
 $y += 60
 Add-StatusBar $margin $y $usable 8 $grand
 $y += 32
+
+if ($grand.total -eq 0)
+{
+    $empty = if ($data.PSObject.Properties['emptyText']) { [string]$data.emptyText } else { 'No functions tracked yet.' }
+    Add-Line ('  <text class="meta" x="{0}" y="{1}">{2}</text>' -f $margin, ($y + 12), (ConvertTo-Xml $empty))
+    $y += 52
+}
 
 foreach ($category in $categories)
 {
@@ -234,7 +261,7 @@ foreach ($category in $categories)
 
 $height = $y - 30 + $margin
 $svg = New-Object System.Text.StringBuilder
-[void]$svg.Append(('<svg xmlns="http://www.w3.org/2000/svg" width="{0}" height="{1}" viewBox="0 0 {0} {1}" role="img" aria-label="OpenEra API coverage: {2}">' -f $width, $height, (ConvertTo-Xml $summary))).Append("`n")
+[void]$svg.Append(('<svg xmlns="http://www.w3.org/2000/svg" width="{0}" height="{1}" viewBox="0 0 {0} {1}" role="img" aria-label="{3}: {2}">' -f $width, $height, (ConvertTo-Xml $summary), (ConvertTo-Xml $Title))).Append("`n")
 [void]$svg.Append("  <style>`n")
 [void]$svg.Append("    .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}`n")
 [void]$svg.Append("    .title{font:600 20px $font;fill:#1f2328}.h2{font:600 15px $font;fill:#1f2328}`n")
@@ -274,11 +301,21 @@ foreach ($category in $categories)
         Add-Md ''
         Add-Md ('<details><summary><b>{0}</b>: {1}/{2} implemented</summary>' -f $module.Name, $module.Counts.implemented, $module.Counts.total)
         Add-Md ''
-        Add-Md '| Function | Status |'
-        Add-Md '| :--- | :--- |'
+        if ($hasSources)
+        {
+            Add-Md '| Function | Status | Seen in |'
+            Add-Md '| :--- | :--- | :--- |'
+        }
+        else
+        {
+            Add-Md '| Function | Status |'
+            Add-Md '| :--- | :--- |'
+        }
         foreach ($function in $module.Functions)
         {
-            Add-Md ('| `{0}` | {1} {2} |' -f $function.Name, $statusEmoji[$function.Status], $statusLabels[$function.Status])
+            $row = '| `{0}` | {1} {2} |' -f $function.Name, $statusEmoji[$function.Status], $statusLabels[$function.Status]
+            if ($hasSources) { $row += ' {0} |' -f ($function.Sources -join ', ') }
+            Add-Md $row
         }
         Add-Md ''
         Add-Md '</details>'
@@ -286,8 +323,8 @@ foreach ($category in $categories)
 }
 $matrix = $md.ToString()
 
-$beginMarker = '<!-- api-matrix:begin (generated by tools/Update-Compatibility.ps1) -->'
-$endMarker = '<!-- api-matrix:end -->'
+$beginMarker = "<!-- ${Marker}:begin (generated by $Generator) -->"
+$endMarker = "<!-- ${Marker}:end -->"
 $markdown = ([IO.File]::ReadAllText($markdownPath, $utf8)).Replace("`r`n", "`n")
 $begin = $markdown.IndexOf($beginMarker)
 $end = $markdown.IndexOf($endMarker)
@@ -317,7 +354,7 @@ if ($Check)
 {
     if ($stale.Count -gt 0)
     {
-        Write-Host "Out of date (run tools/Update-Compatibility.ps1):"
+        Write-Host "Out of date (run ${Generator}):"
         $stale | ForEach-Object { Write-Host "  $_" }
         exit 1
     }
@@ -327,3 +364,4 @@ else
 {
     Write-Host ('{0}/{1} functions implemented; updated {2} file(s).' -f $grand.implemented, $grand.total, $stale.Count)
 }
+exit 0

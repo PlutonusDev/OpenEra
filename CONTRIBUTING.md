@@ -99,6 +99,8 @@ git ls-files 'src/*.cpp' 'tests/*.cpp' | ForEach-Object { clang-tidy -p build-ti
 ./tools/Update-Compatibility.ps1 -Check
 ```
 
+Console-only APIs live in `docs/compatibility/gdkx-status.json`. Regenerate them with `./tools/Update-GdkxCoverage.ps1`, or add new ones from a report's unimplemented-call summary with `./tools/Import-GdkxReport.ps1 -Log <file> -Source '#<issue>'`.
+
 **6. Check the diff:** run `git status` and `git diff`. Make sure no build output, logs, dumps or other unintended files are included.
 
 Warnings are errors with both compilers, and every enabled clang-tidy check is an error. Fix the cause rather than suppressing it. Where a suppression really is right, for example a Win32 structure that is a union by definition, keep it as narrow as possible (one function or one line) and say why next to it.

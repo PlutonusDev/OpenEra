@@ -1,0 +1,9 @@
+{
+  "emptyText": "No console-only APIs recorded yet. They are added from the unimplemented-call summaries of console title reports.",
+  "consoleModules": {
+    "xboxkrnl": "Kernel",
+    "xmem": "Memory",
+    "d3d12_x": "Direct3D 12.x"
+  },
+  "categories": []
+}
