@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="170" viewBox="0 0 1000 170" role="img" aria-label="OpenEra console-only (GDKX) API coverage: 0 of 0 tracked functions implemented (0.0%)">
+  <style>
+    .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}
+    .title{font:600 20px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.h2{font:600 15px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
+    .label{font:600 12px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.meta{font:400 12px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#59636e}.small{font-size:11px}
+    .implemented{fill:#1a7f37}.partial{fill:#bf8700}.stubbed{fill:#8250df}.missing{fill:#d0d7de}
+    @media (prefers-color-scheme:dark){.bg{fill:#0d1117;stroke:#30363d}.card{fill:#161b22;stroke:#30363d}.track{fill:#21262d}
+      .title,.h2,.label{fill:#e6edf3}.meta{fill:#9198a1}
+      .implemented{fill:#3fb950}.partial{fill:#d29922}.stubbed{fill:#a371f7}.missing{fill:#30363d}}
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="169" rx="12"/>
+  <text class="title" x="28" y="48">OpenEra console-only (GDKX) API coverage</text>
+  <text class="meta" x="28" y="70">0 of 0 tracked functions implemented (0.0%)</text>
+  <rect class="missing" x="889" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="906" y="48">Missing 0</text>
+  <rect class="stubbed" x="792" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="809" y="48">Stubbed 0</text>
+  <rect class="partial" x="695" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="712" y="48">Partial 0</text>
+  <rect class="implemented" x="569" y="37" width="12" height="12" rx="3"/>
+  <text class="meta" x="586" y="48">Implemented 0</text>
+  <rect class="track" x="28" y="88" width="944" height="8" rx="4"/>
+  <text class="meta" x="28" y="132">No console-only APIs recorded yet. They are added from the unimplemented-call summaries of console title reports.</text>
+</svg>

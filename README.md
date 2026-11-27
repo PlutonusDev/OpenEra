@@ -40,6 +40,10 @@ Development discussion, progress updates and help all happen on Discord.
 
 Each square is a public API function a title can call. See [COMPATIBILITY.md](COMPATIBILITY.md) for the full API matrix and feature status.
 
+<a href="COMPATIBILITY.md#console-only-gdkx-apis"><img src="docs/compatibility/gdkx-coverage.svg" alt="OpenEra console-only API coverage" width="100%"></a>
+
+Console-only (GDKX) APIs, gathered from compatibility reports and implemented clean-room.
+
 ## Architecture
 
 OpenEra bridges the differences between the GameCore environment and standard Windows APIs:
