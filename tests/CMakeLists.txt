@@ -29,6 +29,7 @@ add_executable(OpenEraTests
     PeReaderTests.cpp
     ShimModuleTests.cpp
     StubRegistryTests.cpp
+    ThreadShimTests.cpp
     TimeSyncTests.cpp
     TitleFileSystemTests.cpp
     TitleLauncherTests.cpp

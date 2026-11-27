@@ -35,7 +35,7 @@ The tracked functions are the public APIs needed for milestone [M1: Series X|S t
 | Kernel | Copy-on-write file layer over the title folder | ✅ Done | #54 |
 | Kernel | DirectStorage | ⚪ Planned | #56 |
 | Kernel | Memory management | 🟡 In progress | #23 |
-| Kernel | Threading, synchronization and timing | 🟡 In progress | #24 |
+| Kernel | Threading, synchronization and timing | ✅ Done | #24 |
 | Kernel | XGameRuntime and XTaskQueue | ⚪ Planned | #25 |
 | Kernel | XUser and system services | ⚪ Planned | #26 |
 | Graphics | Desktop DXGI / Direct3D 12 on the preferred GPU (NVIDIA or AMD first, `--gpu` to choose) | ✅ Done | #27 |
@@ -69,7 +69,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | GDK runtime | XMem / XThread | 0 | 0 | 0 | 5 | 0.0% |
 | Windows system | Files | 12 | 0 | 0 | 0 | 100.0% |
 | Windows system | Memory | 7 | 0 | 0 | 0 | 100.0% |
-| Windows system | Threads and TLS | 0 | 0 | 0 | 13 | 0.0% |
+| Windows system | Threads and TLS | 13 | 0 | 0 | 0 | 100.0% |
 | Windows system | Synchronization | 12 | 0 | 0 | 0 | 100.0% |
 | Windows system | Time and process | 11 | 0 | 0 | 0 | 100.0% |
 | Direct3D 12 | ID3D12Device | 0 | 0 | 0 | 18 | 0.0% |
@@ -77,7 +77,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | Direct3D 12 | ID3D12CommandQueue | 0 | 0 | 0 | 3 | 0.0% |
 | Input and audio | GameInput | 0 | 0 | 0 | 12 | 0.0% |
 | Input and audio | XAudio2 | 0 | 0 | 0 | 11 | 0.0% |
-| **Total** | | **42** | **0** | **0** | **150** | **21.9%** |
+| **Total** | | **55** | **0** | **0** | **137** | **28.6%** |
 
 ### GDK runtime
 
@@ -235,23 +235,23 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 </details>
 
-<details><summary><b>Threads and TLS</b>: 0/13 implemented</summary>
+<details><summary><b>Threads and TLS</b>: 13/13 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
-| `CreateThread` | ⬜ Missing |
-| `ExitThread` | ⬜ Missing |
-| `GetCurrentThreadId` | ⬜ Missing |
-| `SetThreadPriority` | ⬜ Missing |
-| `SetThreadAffinityMask` | ⬜ Missing |
-| `SetThreadDescription` | ⬜ Missing |
-| `Sleep` | ⬜ Missing |
-| `SleepEx` | ⬜ Missing |
-| `SwitchToThread` | ⬜ Missing |
-| `TlsAlloc` | ⬜ Missing |
-| `TlsGetValue` | ⬜ Missing |
-| `TlsSetValue` | ⬜ Missing |
-| `TlsFree` | ⬜ Missing |
+| `CreateThread` | ✅ Implemented |
+| `ExitThread` | ✅ Implemented |
+| `GetCurrentThreadId` | ✅ Implemented |
+| `SetThreadPriority` | ✅ Implemented |
+| `SetThreadAffinityMask` | ✅ Implemented |
+| `SetThreadDescription` | ✅ Implemented |
+| `Sleep` | ✅ Implemented |
+| `SleepEx` | ✅ Implemented |
+| `SwitchToThread` | ✅ Implemented |
+| `TlsAlloc` | ✅ Implemented |
+| `TlsGetValue` | ✅ Implemented |
+| `TlsSetValue` | ✅ Implemented |
+| `TlsFree` | ✅ Implemented |
 
 </details>
 

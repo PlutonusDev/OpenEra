@@ -109,6 +109,12 @@ TEST_CASE("Time functions work in mapped code", "[timesync]")
     CHECK(fixture.Export<CheckFunction>("RunTimeChecks")() == 0);
 }
 
+TEST_CASE("Threads, TLS slots, priorities, affinity and names work in mapped code", "[timesync][threads]")
+{
+    const SyncFixture fixture;
+    CHECK(fixture.Export<CheckFunction>("RunThreadChecks")() == 0);
+}
+
 TEST_CASE("Mapped code finds itself through the loader shims", "[timesync]")
 {
     const SyncFixture fixture;

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="767" viewBox="0 0 1000 767" role="img" aria-label="OpenEra API coverage: 42 of 192 tracked functions implemented (21.9%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="767" viewBox="0 0 1000 767" role="img" aria-label="OpenEra API coverage: 55 of 192 tracked functions implemented (28.6%)">
   <style>
     .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}
     .title{font:600 20px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.h2{font:600 15px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
@@ -10,17 +10,17 @@
   </style>
   <rect class="bg" x="0.5" y="0.5" width="999" height="766" rx="12"/>
   <text class="title" x="28" y="48">OpenEra API coverage</text>
-  <text class="meta" x="28" y="70">42 of 192 tracked functions implemented (21.9%)</text>
+  <text class="meta" x="28" y="70">55 of 192 tracked functions implemented (28.6%)</text>
   <rect class="missing" x="874" y="37" width="12" height="12" rx="3"/>
-  <text class="meta" x="891" y="48">Missing 150</text>
+  <text class="meta" x="891" y="48">Missing 137</text>
   <rect class="stubbed" x="777" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="794" y="48">Stubbed 0</text>
   <rect class="partial" x="680" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="697" y="48">Partial 0</text>
   <rect class="implemented" x="547" y="37" width="12" height="12" rx="3"/>
-  <text class="meta" x="564" y="48">Implemented 42</text>
+  <text class="meta" x="564" y="48">Implemented 55</text>
   <rect class="track" x="28" y="88" width="944" height="8" rx="4"/>
-  <rect class="implemented" x="28" y="88" width="206" height="8" rx="4"/>
+  <rect class="implemented" x="28" y="88" width="270" height="8" rx="4"/>
   <text class="h2" x="28" y="134">GDK runtime</text>
   <text class="meta" x="972" y="134" text-anchor="end">0/70 implemented (0.0%)</text>
   <rect class="track" x="28" y="144" width="944" height="4" rx="2"/>
@@ -130,31 +130,31 @@
     <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XNetworkingUnregisterConnectivityHintChanged: Missing</title></rect>
   </g>
   <text class="h2" x="28" y="360">Windows system</text>
-  <text class="meta" x="972" y="360" text-anchor="end">42/55 implemented (76.4%)</text>
+  <text class="meta" x="972" y="360" text-anchor="end">55/55 implemented (100.0%)</text>
   <rect class="track" x="28" y="370" width="944" height="4" rx="2"/>
-  <rect class="implemented" x="28" y="370" width="721" height="4" rx="2"/>
+  <rect class="implemented" x="28" y="370" width="944" height="4" rx="2"/>
   <g transform="translate(28,384)">
-    <rect class="card" width="200" height="73" rx="8"/>
+    <rect class="card" width="213" height="73" rx="8"/>
     <text class="label" x="12" y="23">Threads and TLS</text>
-    <text class="meta small" x="188" y="23" text-anchor="end">0/13</text>
-    <rect class="missing" x="12" y="34" width="12" height="12" rx="2"><title>CreateThread: Missing</title></rect>
-    <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>ExitThread: Missing</title></rect>
-    <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>GetCurrentThreadId: Missing</title></rect>
-    <rect class="missing" x="57" y="34" width="12" height="12" rx="2"><title>SetThreadPriority: Missing</title></rect>
-    <rect class="missing" x="72" y="34" width="12" height="12" rx="2"><title>SetThreadAffinityMask: Missing</title></rect>
-    <rect class="missing" x="87" y="34" width="12" height="12" rx="2"><title>SetThreadDescription: Missing</title></rect>
-    <rect class="missing" x="102" y="34" width="12" height="12" rx="2"><title>Sleep: Missing</title></rect>
-    <rect class="missing" x="117" y="34" width="12" height="12" rx="2"><title>SleepEx: Missing</title></rect>
-    <rect class="missing" x="132" y="34" width="12" height="12" rx="2"><title>SwitchToThread: Missing</title></rect>
-    <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>TlsAlloc: Missing</title></rect>
-    <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>TlsGetValue: Missing</title></rect>
-    <rect class="missing" x="12" y="49" width="12" height="12" rx="2"><title>TlsSetValue: Missing</title></rect>
-    <rect class="missing" x="27" y="49" width="12" height="12" rx="2"><title>TlsFree: Missing</title></rect>
+    <text class="meta small" x="201" y="23" text-anchor="end">13/13</text>
+    <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateThread: Implemented</title></rect>
+    <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ExitThread: Implemented</title></rect>
+    <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>GetCurrentThreadId: Implemented</title></rect>
+    <rect class="implemented" x="57" y="34" width="12" height="12" rx="2"><title>SetThreadPriority: Implemented</title></rect>
+    <rect class="implemented" x="72" y="34" width="12" height="12" rx="2"><title>SetThreadAffinityMask: Implemented</title></rect>
+    <rect class="implemented" x="87" y="34" width="12" height="12" rx="2"><title>SetThreadDescription: Implemented</title></rect>
+    <rect class="implemented" x="102" y="34" width="12" height="12" rx="2"><title>Sleep: Implemented</title></rect>
+    <rect class="implemented" x="117" y="34" width="12" height="12" rx="2"><title>SleepEx: Implemented</title></rect>
+    <rect class="implemented" x="132" y="34" width="12" height="12" rx="2"><title>SwitchToThread: Implemented</title></rect>
+    <rect class="implemented" x="147" y="34" width="12" height="12" rx="2"><title>TlsAlloc: Implemented</title></rect>
+    <rect class="implemented" x="162" y="34" width="12" height="12" rx="2"><title>TlsGetValue: Implemented</title></rect>
+    <rect class="implemented" x="177" y="34" width="12" height="12" rx="2"><title>TlsSetValue: Implemented</title></rect>
+    <rect class="implemented" x="12" y="49" width="12" height="12" rx="2"><title>TlsFree: Implemented</title></rect>
   </g>
-  <g transform="translate(240,384)">
-    <rect class="card" width="130" height="73" rx="8"/>
+  <g transform="translate(253,384)">
+    <rect class="card" width="127" height="73" rx="8"/>
     <text class="label" x="12" y="23">Files</text>
-    <text class="meta small" x="118" y="23" text-anchor="end">12/12</text>
+    <text class="meta small" x="115" y="23" text-anchor="end">12/12</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Implemented</title></rect>
@@ -168,10 +168,10 @@
     <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Implemented</title></rect>
     <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Implemented</title></rect>
   </g>
-  <g transform="translate(382,384)">
-    <rect class="card" width="217" height="73" rx="8"/>
+  <g transform="translate(392,384)">
+    <rect class="card" width="213" height="73" rx="8"/>
     <text class="label" x="12" y="23">Synchronization</text>
-    <text class="meta small" x="205" y="23" text-anchor="end">12/12</text>
+    <text class="meta small" x="201" y="23" text-anchor="end">12/12</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>InitializeCriticalSection: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>EnterCriticalSection: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>LeaveCriticalSection: Implemented</title></rect>
@@ -185,10 +185,10 @@
     <rect class="implemented" x="162" y="34" width="12" height="12" rx="2"><title>WaitForSingleObject: Implemented</title></rect>
     <rect class="implemented" x="177" y="34" width="12" height="12" rx="2"><title>WaitForMultipleObjects: Implemented</title></rect>
   </g>
-  <g transform="translate(611,384)">
-    <rect class="card" width="217" height="73" rx="8"/>
+  <g transform="translate(617,384)">
+    <rect class="card" width="213" height="73" rx="8"/>
     <text class="label" x="12" y="23">Time and process</text>
-    <text class="meta small" x="205" y="23" text-anchor="end">11/11</text>
+    <text class="meta small" x="201" y="23" text-anchor="end">11/11</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>QueryPerformanceCounter: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>QueryPerformanceFrequency: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>GetSystemTimeAsFileTime: Implemented</title></rect>
@@ -201,10 +201,10 @@
     <rect class="implemented" x="147" y="34" width="12" height="12" rx="2"><title>GetProcAddress: Implemented</title></rect>
     <rect class="implemented" x="162" y="34" width="12" height="12" rx="2"><title>LoadLibraryExW: Implemented</title></rect>
   </g>
-  <g transform="translate(840,384)">
-    <rect class="card" width="132" height="73" rx="8"/>
+  <g transform="translate(842,384)">
+    <rect class="card" width="130" height="73" rx="8"/>
     <text class="label" x="12" y="23">Memory</text>
-    <text class="meta small" x="120" y="23" text-anchor="end">7/7</text>
+    <text class="meta small" x="118" y="23" text-anchor="end">7/7</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>VirtualAlloc: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>VirtualFree: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>VirtualProtect: Implemented</title></rect>
