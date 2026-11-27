@@ -20,4 +20,12 @@ set_target_properties(OpenEraEntryImage PROPERTIES OUTPUT_NAME EntryImage)
 target_compile_options(OpenEraEntryImage PRIVATE /GS-)
 target_link_options(OpenEraEntryImage PRIVATE /NODEFAULTLIB /ENTRY:EntryImageStart /SUBSYSTEM:CONSOLE)
 
-add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraEntryImage)
+# Checks it sees itself as the process image; also without the C runtime.
+add_executable(OpenEraIdentityImage IdentityImage.cpp)
+set_target_properties(OpenEraIdentityImage PROPERTIES OUTPUT_NAME IdentityImage)
+target_compile_options(OpenEraIdentityImage PRIVATE /GS-)
+target_link_options(OpenEraIdentityImage PRIVATE /NODEFAULTLIB /ENTRY:IdentityImageStart /SUBSYSTEM:CONSOLE)
+target_link_libraries(OpenEraIdentityImage PRIVATE kernel32)
+
+add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraEntryImage
+    OpenEraIdentityImage)

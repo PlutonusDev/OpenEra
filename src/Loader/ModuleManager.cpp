@@ -508,6 +508,30 @@ uint64_t ModuleManager::LoadForRuntime(std::string_view name)
     return module == nullptr ? 0 : module->Base();
 }
 
+void ModuleManager::SetImageDirectory(const std::filesystem::path& directory)
+{
+    const std::scoped_lock lock(m_mutex);
+    std::error_code error;
+    m_imageDirectory = std::filesystem::absolute(directory, error).lexically_normal();
+}
+
+std::optional<std::filesystem::path> ModuleManager::ImagePath(uint64_t handle) const
+{
+    const std::scoped_lock lock(m_mutex);
+    const uint64_t base = handle == 0 ? m_mainHandle : handle;
+    if (m_imageDirectory.empty() || base == 0)
+    {
+        return std::nullopt;
+    }
+    const auto it =
+        std::ranges::find_if(m_modules, [base](const LoadedModule& module) noexcept { return module.Base() == base; });
+    if (it == m_modules.end())
+    {
+        return std::nullopt;
+    }
+    return m_imageDirectory / std::filesystem::path(std::u8string(it->Name.begin(), it->Name.end()));
+}
+
 uint64_t ModuleManager::MainModuleHandle() const
 {
     const std::scoped_lock lock(m_mutex);

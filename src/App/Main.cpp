@@ -53,7 +53,8 @@ constexpr int kExitLoad = 5;   // Loading or linking failed.
 constexpr int kExitStart = 6;  // Start-up or the entry point failed.
 
 constexpr std::string_view kUsage = R"(Usage:
-  openera run <title folder> [options]   Load and start a title
+  openera run <title folder> [options] [-- <title arguments>]
+                                         Load and start a title
   openera info <title folder>            Show what MicrosoftGame.config describes
   openera config [<title folder>]        List every setting, its value and where it came from
 
@@ -71,6 +72,7 @@ Options:
   --log-level <level>   trace, info, warn or error (log.level)
   --log-file <path>     Also write the log to a file (log.file)
   --log-window          Also show the log in a window (log.window)
+  --                    Pass the rest of the command line to the title
 )";
 
 struct CommandLine
@@ -78,7 +80,8 @@ struct CommandLine
     std::string Command;
     std::optional<std::filesystem::path> Folder;
     std::optional<std::filesystem::path> ConfigFile;
-    std::vector<std::string> Overrides; // key=value, in command-line order.
+    std::vector<std::string> Overrides;       // key=value, in command-line order.
+    std::vector<std::wstring> TitleArguments; // After --, for the title's own command line.
     bool Start = true;
 };
 
@@ -116,6 +119,14 @@ std::optional<CommandLine> ParseCommandLine(const std::vector<std::wstring>& arg
     {
         const std::string option = Narrow(arguments.at(index));
         const bool hasValue = index + 1 < arguments.size();
+        if (option == "--")
+        {
+            for (size_t rest = index + 1; rest < arguments.size(); ++rest)
+            {
+                line.TitleArguments.push_back(arguments.at(rest));
+            }
+            break;
+        }
         if (!option.starts_with("--") && !line.Folder)
         {
             line.Folder = arguments.at(index);
@@ -313,6 +324,7 @@ int Run(const CommandLine& line, const Config& config, Logger& logger)
     options.Folder = *line.Folder;
     options.ExecutableId = config.GetString(Setting::kExecutable);
     options.Start = line.Start;
+    options.Arguments = line.TitleArguments;
     options.OverlayDirectory = std::filesystem::path(
         std::u8string(config.GetString(Setting::kOverlay).begin(), config.GetString(Setting::kOverlay).end()));
     const auto& gpu = config.GetString(Setting::kGpu);

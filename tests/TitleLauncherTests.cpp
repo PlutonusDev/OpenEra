@@ -57,9 +57,14 @@ public:
 
     void AddEntryImage(const std::filesystem::path& relativeDirectory) const
     {
+        AddImage("EntryImage.exe", relativeDirectory);
+    }
+
+    void AddImage(std::string_view name, const std::filesystem::path& relativeDirectory) const
+    {
         std::filesystem::create_directories(m_path / relativeDirectory);
-        std::filesystem::copy_file(std::filesystem::path(OPENERA_FIXTURE_DIR) / "EntryImage.exe",
-                                   m_path / relativeDirectory / "EntryImage.exe");
+        std::filesystem::copy_file(std::filesystem::path(OPENERA_FIXTURE_DIR) / name,
+                                   m_path / relativeDirectory / name);
     }
 
     [[nodiscard]] const std::filesystem::path& Path() const noexcept { return m_path; }
@@ -76,7 +81,8 @@ LaunchOptions OptionsFor(const TitleFolder& folder)
             .Start = true,
             .TlsSlot = OPENERA_TLS_SLOT,
             .WorkDirectory = std::filesystem::temp_directory_path() / "OpenEraTests",
-            .OverlayDirectory = folder.Overlay()};
+            .OverlayDirectory = folder.Overlay(),
+            .Arguments = {}};
 }
 } // namespace
 
@@ -90,6 +96,22 @@ TEST_CASE("A title folder runs and returns its exit code", "[launcher]")
     CHECK(result.Error == LaunchError::None);
     CHECK(result.Executable == "EntryImage.exe");
     CHECK(result.ExitCode == std::optional<uint32_t>(42));
+}
+
+TEST_CASE("A running title sees itself as the process image", "[launcher][process]")
+{
+    const TitleFolder folder("Identity");
+    folder.WriteConfig("IdentityImage.exe");
+    folder.AddImage("IdentityImage.exe", {});
+    Logger logger;
+    auto options = OptionsFor(folder);
+    options.Arguments = {L"--level", L"two words"};
+    const auto before = std::filesystem::current_path();
+    const auto result = RunTitleFolder(options, logger);
+    CHECK(result.Error == LaunchError::None);
+    // Each bit is a check inside the title that failed: module path, command line, image name, small buffer.
+    CHECK(result.ExitCode == std::optional<uint32_t>(0));
+    CHECK(std::filesystem::current_path() == before); // Restored afterwards.
 }
 
 TEST_CASE("The executable can live in a subfolder", "[launcher]")

@@ -16,6 +16,7 @@
 #include "App/Settings.h"
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
+#include "Kernel/ProcessShims.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
 #include "Kernel/TitleFileSystem.h"
@@ -106,6 +107,46 @@ public:
 
 private:
     bool m_raised;
+};
+
+// The title as the process image (its executable, command line and the title
+// folder as the current directory) while it's alive; everything restored after.
+class TitleProcessScope
+{
+public:
+    TitleProcessScope(Kernel::TitleProcessIdentity identity, const std::filesystem::path& folder, Logger& logger)
+    {
+        std::error_code error;
+        m_previousDirectory = std::filesystem::current_path(error);
+        std::filesystem::current_path(folder, error);
+        if (error)
+        {
+            logger.Warn("Launch: couldn't make {} the current directory ({})", folder.string(), error.message());
+        }
+        Kernel::SetTitleProcess(std::move(identity));
+    }
+
+    ~TitleProcessScope()
+    {
+        try
+        {
+            Kernel::SetTitleProcess(std::nullopt);
+            std::error_code error;
+            std::filesystem::current_path(m_previousDirectory, error);
+        }
+        catch (const std::exception&)
+        {
+            return; // Best effort: the title has finished.
+        }
+    }
+
+    TitleProcessScope(const TitleProcessScope&) = delete;
+    TitleProcessScope& operator=(const TitleProcessScope&) = delete;
+    TitleProcessScope(TitleProcessScope&&) = delete;
+    TitleProcessScope& operator=(TitleProcessScope&&) = delete;
+
+private:
+    std::filesystem::path m_previousDirectory;
 };
 
 // Keeps the file shims pointed at `files` while it's alive.
@@ -255,6 +296,12 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     {
         manager.SetInitializer(&*initializer);
     }
+    const auto imageDirectory = std::filesystem::absolute(options.Folder / location->Directory).lexically_normal();
+    manager.SetImageDirectory(imageDirectory);
+    const auto image =
+        imageDirectory / std::filesystem::path(std::u8string(location->FileName.begin(), location->FileName.end()));
+    const TitleProcessScope process({.Image = image, .CommandLine = Kernel::BuildCommandLine(image, options.Arguments)},
+                                    std::filesystem::absolute(options.Folder), logger);
     const ActiveManagerScope active(manager);
     const TimerResolutionScope timer;
     if (!timer.Raised())

@@ -97,6 +97,8 @@ public:
 
     [[nodiscard]] ModuleError Load(std::string_view name);
     void SetInitializer(ModuleInitializer* initializer) noexcept;
+    // Folder the reader loads images from, so ImagePath can report where they are.
+    void SetImageDirectory(const std::filesystem::path& directory);
     // Detaches attached modules in reverse attach order (process exit).
     void Shutdown();
 
@@ -117,6 +119,9 @@ public:
     [[nodiscard]] uint64_t LoadForRuntime(std::string_view name);
     [[nodiscard]] uint64_t HandleOf(std::string_view name);
     [[nodiscard]] uint64_t MainModuleHandle() const;
+    // Host path of the title module at `handle` (0: the main one), or nullopt if
+    // it isn't a title module or no image directory was set.
+    [[nodiscard]] std::optional<std::filesystem::path> ImagePath(uint64_t handle) const;
     [[nodiscard]] uint64_t ProcAddress(uint64_t handle, std::string_view symbol);
     [[nodiscard]] uint64_t ProcAddress(uint64_t handle, uint16_t ordinal);
 
@@ -155,6 +160,7 @@ private:
     std::vector<size_t> m_attachOrder;
     std::unordered_map<uint64_t, const Kernel::ShimModule*> m_shimHandles;
     uint64_t m_mainHandle = 0;
+    std::filesystem::path m_imageDirectory;
 };
 
 // Registers the loader shims, backed by ModuleManager::Active():
@@ -165,6 +171,8 @@ private:
 //   memory API sets, and OutputDebugString{W,A} into the log
 //   (Kernel::AddDebugOutputExports), and thread affinity, priority and
 //   naming (Kernel::AddThreadExports), also under the processthreads API sets.
+// - The title as the process image: GetModuleFileName{W,A} for title modules,
+//   and GetCommandLine{W,A} / QueryFullProcessImageName{W,A} (Kernel::AddProcessExports).
 // - ntdll.dll (aliases the rtlsupport API sets): RtlPcToFileHeader.
 // - vcruntime140.dll: _CxxThrowException, which records the thrower's image
 //   base for title modules the OS loader doesn't know.
