@@ -113,6 +113,8 @@ build\src\App\openera.exe info <title folder>
 build\src\App\openera.exe run <title folder>
 ```
 
+While it runs, the title sees itself as the process: `GetModuleFileName`, `GetCommandLine` and `QueryFullProcessImageName` report its executable, and the current directory is the title folder. Anything after `--` is passed on as the title's own arguments: `openera run <folder> -- -windowed`.
+
 `run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. `--gpu` picks the GPU: by default OpenEra puts the NVIDIA or AMD GPU in front of the title (on hybrid laptops too), and `--gpu nvidia|amd|intel|<index>` overrides that. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`, and `--log-window` shows the log in its own window, coloured by level, that stays open after the title ends. Run `openera --help` for the full list.
 
 #### Settings

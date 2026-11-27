@@ -1,10 +1,13 @@
 // Runtime loader shims (LoadLibrary, GetModuleHandle, GetProcAddress,
 // FreeLibrary) and the image-base lookups C++ exceptions need, resolved
 // through the active ModuleManager.
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -13,6 +16,7 @@
 #include "Kernel/DebugOutputShims.h"
 #include "Kernel/FileShims.h"
 #include "Kernel/MemoryShims.h"
+#include "Kernel/ProcessShims.h"
 #include "Kernel/ShimGuard.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/ThreadShims.h"
@@ -112,6 +116,65 @@ HMODULE WINAPI GetModuleHandleWShim(LPCWSTR name) noexcept
 HMODULE WINAPI GetModuleHandleAShim(LPCSTR name) noexcept
 {
     return Kernel::GuardShim<HMODULE>("GetModuleHandleA", nullptr, nullptr, [name] { return HandleByName(name); });
+}
+
+// The title module's own path for NULL (the main module) or a title handle;
+// anything else goes to the host.
+std::optional<std::wstring> TitleImagePath(HMODULE module)
+{
+    const auto* manager = ModuleManager::Active();
+    if (manager == nullptr)
+    {
+        return std::nullopt;
+    }
+    const auto path = manager->ImagePath(std::bit_cast<uint64_t>(module));
+    return path ? std::optional(path->wstring()) : std::nullopt;
+}
+
+// GetModuleFileName's contract: the length copied, or the buffer size with
+// ERROR_INSUFFICIENT_BUFFER when the path was cut short.
+DWORD Finish(const Kernel::CopiedText& copied, DWORD size) noexcept
+{
+    if (copied.Truncated)
+    {
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return size;
+    }
+    SetLastError(ERROR_SUCCESS);
+    return copied.Length;
+}
+
+DWORD WINAPI GetModuleFileNameWShim(HMODULE module, LPWSTR buffer, DWORD size) noexcept
+{
+    return Kernel::GuardShim<DWORD>("GetModuleFileNameW", 0, 0,
+                                    [=]() -> DWORD
+                                    {
+                                        const auto path = TitleImagePath(module);
+                                        if (!path || buffer == nullptr)
+                                        {
+                                            return GetModuleFileNameW(module, buffer, size);
+                                        }
+                                        return Finish(Kernel::CopyToBuffer(*path, std::span(buffer, size)), size);
+                                    });
+}
+
+DWORD WINAPI GetModuleFileNameAShim(HMODULE module, LPSTR buffer, DWORD size) noexcept
+{
+    return Kernel::GuardShim<DWORD>(
+        "GetModuleFileNameA", 0, 0,
+        [=]() -> DWORD
+        {
+            const auto path = TitleImagePath(module);
+            if (!path || buffer == nullptr)
+            {
+                return GetModuleFileNameA(module, buffer, size);
+            }
+            const int length = WideCharToMultiByte(CP_ACP, 0, path->c_str(), -1, nullptr, 0, nullptr, nullptr);
+            std::string ansi(static_cast<size_t>(std::max(length, 1)), '\0');
+            WideCharToMultiByte(CP_ACP, 0, path->c_str(), -1, ansi.data(), length, nullptr, nullptr);
+            ansi.pop_back(); // Terminator.
+            return Finish(Kernel::CopyToBuffer(ansi, std::span(buffer, size)), size);
+        });
 }
 
 FARPROC WINAPI GetProcAddressShim(HMODULE module, LPCSTR name) noexcept
@@ -214,11 +277,14 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
                           kernel.Export("LoadLibraryA", Kernel::ToShimProc(&LoadLibraryAShim)) &&
                           kernel.Export("GetModuleHandleW", Kernel::ToShimProc(&GetModuleHandleWShim)) &&
                           kernel.Export("GetModuleHandleA", Kernel::ToShimProc(&GetModuleHandleAShim)) &&
+                          kernel.Export("GetModuleFileNameW", Kernel::ToShimProc(&GetModuleFileNameWShim)) &&
+                          kernel.Export("GetModuleFileNameA", Kernel::ToShimProc(&GetModuleFileNameAShim)) &&
                           kernel.Export("GetProcAddress", Kernel::ToShimProc(&GetProcAddressShim)) &&
                           kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
                           kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
                           Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) &&
-                          Kernel::AddDebugOutputExports(kernel) && Kernel::AddThreadExports(kernel);
+                          Kernel::AddDebugOutputExports(kernel) && Kernel::AddThreadExports(kernel) &&
+                          Kernel::AddProcessExports(kernel);
 
     Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");

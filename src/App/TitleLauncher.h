@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Loader/GameConfig.h"
 
@@ -51,6 +52,8 @@ struct LaunchOptions
     // Where the title's writes go (the folder itself is never modified).
     // Empty: Overlay in App::TitleDataDirectory(identity).
     std::filesystem::path OverlayDirectory;
+    // Arguments for the title's own command line, after its executable.
+    std::vector<std::wstring> Arguments;
 };
 
 struct LaunchResult
