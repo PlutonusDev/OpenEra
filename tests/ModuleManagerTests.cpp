@@ -121,6 +121,8 @@ struct Package
         Game.Import("KERNEL32.dll", "GetTickCount64");
         Game.Import("Missing.dll", "Nope");
         Game.DelayImport("liba.dll", 6);
+        Game.DelayImport("libc.dll", 1);
+        Game.DelayImport("absent.dll", 1);
 
         LibC.Export("Hello", HelloRva, 1);
 
@@ -231,7 +233,7 @@ TEST_CASE("ModuleManager links title modules to each other", "[ModuleManager]")
 {
     const Fixture fixture;
     REQUIRE(fixture.Manager->Load("game.exe") == ModuleError::None);
-    CHECK(fixture.Manager->ModuleCount() == 3); // libc.dll isn't imported, so it isn't loaded.
+    CHECK(fixture.Manager->ModuleCount() == 3); // libc.dll and absent.dll are only delay-imported.
     CHECK(fixture.Manager->Find("LIBA.DLL")->Base() == kLibABase);
     CHECK(fixture.Manager->MainModuleHandle() == kGameBase);
 
@@ -240,7 +242,9 @@ TEST_CASE("ModuleManager links title modules to each other", "[ModuleManager]")
     CHECK(fixture.Slot("game.exe", game, "liba.dll", "Add") == kLibABase + fixture.Files.AddRva);
     CHECK(fixture.Slot("game.exe", game, "liba.dll", "#2") == kLibABase + fixture.Files.NoNameRva);
     CHECK(fixture.Slot("game.exe", game, "liba.dll", "Counter") == kLibABase + fixture.Files.CounterRva);
-    CHECK(fixture.Slot("game.exe", game, "liba.dll", "#6") == kLibABase + fixture.Files.DelayValueRva); // Delay import.
+    // Delay imports are left for the image's own helper.
+    CHECK(fixture.Slot("game.exe", game, "liba.dll", "#6") == 0);
+    CHECK(fixture.Slot("game.exe", game, "libc.dll", "#1") == 0);
 
     // Forwarders: a two-hop chain, an ordinal target, and one into the host's kernel32.
     CHECK(fixture.Slot("game.exe", game, "libb.dll", "Chain") == kLibBBase + fixture.Files.MulRva);

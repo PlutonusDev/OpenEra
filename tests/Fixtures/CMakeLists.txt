@@ -42,5 +42,18 @@ target_link_libraries(OpenEraExitImage PRIVATE kernel32)
 add_executable(OpenEraCrtExitImage CrtExitImage.cpp)
 set_target_properties(OpenEraCrtExitImage PROPERTIES OUTPUT_NAME CrtExitImage MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
+# DelayImage delay-loads DelayTargetImage and DelayMissingImage; the latter is
+# built elsewhere so it's missing from the fixture directory.
+add_library(OpenEraDelayTargetImage SHARED DelayTargetImage.cpp)
+add_library(OpenEraDelayMissingImage SHARED DelayMissingImage.cpp)
+add_library(OpenEraDelayImage SHARED DelayImage.cpp)
+set_target_properties(OpenEraDelayTargetImage OpenEraDelayMissingImage OpenEraDelayImage PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+set_target_properties(OpenEraDelayTargetImage PROPERTIES OUTPUT_NAME DelayTargetImage)
+set_target_properties(OpenEraDelayMissingImage PROPERTIES OUTPUT_NAME DelayMissingImage
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/elsewhere)
+set_target_properties(OpenEraDelayImage PROPERTIES OUTPUT_NAME DelayImage)
+target_link_libraries(OpenEraDelayImage PRIVATE OpenEraDelayTargetImage OpenEraDelayMissingImage delayimp)
+target_link_options(OpenEraDelayImage PRIVATE /DELAYLOAD:DelayTargetImage.dll /DELAYLOAD:DelayMissingImage.dll)
+
 add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraCrtFileImage OpenEraEntryImage
-    OpenEraIdentityImage OpenEraExitImage OpenEraCrtExitImage)
+    OpenEraIdentityImage OpenEraExitImage OpenEraCrtExitImage OpenEraDelayImage)

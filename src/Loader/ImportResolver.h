@@ -52,7 +52,6 @@ struct ImportBinding
     std::optional<uint16_t> Ordinal;
     uint64_t Address = 0;
     ImportSource Source = ImportSource::Stub;
-    bool Delayed = false;
 };
 
 // Something imports can be bound to besides shims: title modules or host DLLs.
@@ -116,11 +115,10 @@ struct ResolveResult
     std::optional<BoundImports> Imports; // Set exactly when Error == ResolveError::None.
 };
 
-// Fills the import address tables (regular and delay-load, bound eagerly) of a
-// mapped image. Each import is looked up in title modules, then `shims`, then
-// host DLLs; anything left is bound to a generated stub that records each call
-// in `stubs` and returns DefaultStubReturnValue. Final page protections are
-// restored afterwards.
+// Fills the import address table of a mapped image. Delay-load slots keep the
+// image's own load thunks, so its helper binds them on first use. Each import is looked up in title modules, then
+// `shims`, then host DLLs; anything left is bound to a generated stub that records each call in `stubs` and returns
+// DefaultStubReturnValue. Final page protections are restored afterwards.
 [[nodiscard]] ResolveResult ResolveImports(const MappedImage& image, const PeImage& pe,
                                            const Kernel::ShimRegistry& shims, Kernel::StubRegistry& stubs,
                                            ImageAllocator& stubAllocator, Core::Logger& logger,
