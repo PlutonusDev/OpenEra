@@ -142,7 +142,7 @@ The title's own debug output (`OutputDebugString`) appears in the log as `Title:
 
 OpenEra never modifies the title folder: anything the title writes, creates or deletes there (through Win32, the C runtime or the C++ standard library) goes to a per-title overlay under `%LOCALAPPDATA%\OpenEra\Titles\<identity>\Overlay`, and the title sees the two merged. Delete that folder to reset the title.
 
-After the title runs, `openera` exits with the title's own exit code. Otherwise it exits with:
+After the title runs, `openera` exits with the title's own exit code, including when the title ends the process itself (`ExitProcess`, or `exit` after `main` returns): OpenEra catches that, logs its summary and then exits with that code. Otherwise it exits with:
 
 | Code | Meaning |
 | :---: | :--- |

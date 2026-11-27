@@ -61,6 +61,10 @@ struct LaunchResult
     LaunchError Error = LaunchError::None;
     std::string Executable;           // Name from the config.
     std::optional<uint32_t> ExitCode; // Set when the entry point ran and returned.
+    bool ExitRequested = false;       // The title ended "the process" itself (ExitProcess, exit).
+    // Title threads were still running, so the title was left loaded: the
+    // caller should end the process without tearing down around them.
+    bool LeftRunning = false;
 };
 
 // Loads a title folder's main executable with its own DLLs, links it, and

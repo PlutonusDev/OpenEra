@@ -1,17 +1,21 @@
 // Runs synthetic title folders end to end: a MicrosoftGame.config plus the
 // EntryImage.exe test image, loaded, linked and started by OpenEra.
+#include <array>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <Windows.h>
 #include <catch2/catch_test_macros.hpp>
 
 #include "App/TitleLauncher.h"
 #include "Core/Logger.h"
+#include "Kernel/ExitShims.h"
 
 using namespace OpenEra::App;
 using OpenEra::Core::Logger;
@@ -165,4 +169,124 @@ TEST_CASE("Unusable title folders are refused", "[launcher]")
 
     options.ExecutableId = "NoSuchId";
     CHECK(RunTitleFolder(options, logger).Error == LaunchError::NoExecutable);
+}
+
+namespace
+{
+struct LauncherRun
+{
+    DWORD ExitCode = 0;
+    std::string Output; // stderr and stdout.
+};
+
+// Runs the real openera.exe with `arguments`, capturing what it prints.
+LauncherRun RunLauncher(const std::wstring& arguments)
+{
+    SECURITY_ATTRIBUTES inherit{
+        .nLength = sizeof(SECURITY_ATTRIBUTES), .lpSecurityDescriptor = nullptr, .bInheritHandle = TRUE};
+    HANDLE readPipe = nullptr;
+    HANDLE writePipe = nullptr;
+    REQUIRE(CreatePipe(&readPipe, &writePipe, &inherit, 0));
+    REQUIRE(SetHandleInformation(readPipe, HANDLE_FLAG_INHERIT, 0));
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    startup.dwFlags = STARTF_USESTDHANDLES;
+    startup.hStdOutput = writePipe;
+    startup.hStdError = writePipe;
+    startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    PROCESS_INFORMATION process{};
+    std::wstring command = L"\"" + std::wstring(OPENERA_LAUNCHER) + L"\" " + arguments;
+    REQUIRE(CreateProcessW(nullptr, command.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr,
+                           &startup, &process));
+    CloseHandle(writePipe);
+    LauncherRun run;
+    std::array<char, 4096> buffer{};
+    DWORD read = 0;
+    while (ReadFile(readPipe, buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr) != FALSE && read != 0)
+    {
+        run.Output.append(buffer.data(), read);
+    }
+    CloseHandle(readPipe);
+    REQUIRE(WaitForSingleObject(process.hProcess, 60'000) == WAIT_OBJECT_0);
+    GetExitCodeProcess(process.hProcess, &run.ExitCode);
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    return run;
+}
+} // namespace
+
+TEST_CASE("Exit requests are recorded once while armed", "[exit]")
+{
+    using namespace OpenEra::Kernel;
+    DisarmTitleExit();
+    CHECK_FALSE(RequestTitleExit(1));
+    ArmTitleExit();
+    CHECK_FALSE(TitleExitCode().has_value());
+    CHECK(WaitForSingleObject(TitleExitEvent(), 0) == WAIT_TIMEOUT);
+    CHECK(RequestTitleExit(4));
+    CHECK(RequestTitleExit(5)); // Later requests still end their thread, but the first code stands.
+    CHECK(TitleExitCode() == std::optional<uint32_t>(4));
+    CHECK(WaitForSingleObject(TitleExitEvent(), 0) == WAIT_OBJECT_0);
+    ArmTitleExit(); // A new run starts clean.
+    CHECK_FALSE(TitleExitCode().has_value());
+    DisarmTitleExit();
+}
+
+TEST_CASE("A title that exits the process only ends itself", "[launcher][exit]")
+{
+    struct Case
+    {
+        std::vector<std::wstring> Arguments;
+        uint32_t Code;
+    };
+    for (const auto& sample : {Case{.Arguments = {}, .Code = 7}, Case{.Arguments = {L"--from-thread"}, .Code = 9},
+                               Case{.Arguments = {L"--terminate"}, .Code = 11}})
+    {
+        const TitleFolder folder("Exit");
+        folder.WriteConfig("ExitImage.exe");
+        folder.AddImage("ExitImage.exe", {});
+        Logger logger;
+        auto options = OptionsFor(folder);
+        options.Arguments = sample.Arguments;
+        const auto result = RunTitleFolder(options, logger);
+        INFO(sample.Code);
+        CHECK(result.Error == LaunchError::None);
+        CHECK(result.ExitRequested);
+        CHECK(result.ExitCode == std::optional<uint32_t>(sample.Code));
+    }
+}
+
+TEST_CASE("The C runtime's exit after main returns only ends the title", "[launcher][exit]")
+{
+    const TitleFolder folder("CrtExit");
+    folder.WriteConfig("CrtExitImage.exe");
+    folder.AddImage("CrtExitImage.exe", {});
+    Logger logger;
+    const auto result = RunTitleFolder(OptionsFor(folder), logger);
+    CHECK(result.Error == LaunchError::None);
+    CHECK(result.ExitRequested);
+    CHECK(result.ExitCode == std::optional<uint32_t>(3));
+}
+
+TEST_CASE("openera logs its summary and exits with the title's code", "[launcher][exit]")
+{
+    const TitleFolder folder("LauncherExit");
+    folder.WriteConfig("ExitImage.exe");
+    folder.AddImage("ExitImage.exe", {});
+    const std::wstring common = L"run \"" + folder.Path().wstring() +
+                                L"\" --set log.debugger=false --set \"files.overlay='" + folder.Overlay().wstring() +
+                                L"'\"";
+
+    const auto exited = RunLauncher(common);
+    INFO(exited.Output);
+    CHECK(exited.ExitCode == 7);
+    CHECK(exited.Output.find("exited the process with 7") != std::string::npos);
+    CHECK(exited.Output.find("Stub summary") != std::string::npos);
+
+    // A thread that outlives the title: it's left running, and openera still finishes.
+    const auto lingering = RunLauncher(common + L" -- --linger");
+    INFO(lingering.Output);
+    CHECK(lingering.ExitCode == 5);
+    CHECK(lingering.Output.find("still running") != std::string::npos);
+    CHECK(lingering.Output.find("Stub summary") != std::string::npos);
 }
