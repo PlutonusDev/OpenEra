@@ -16,7 +16,11 @@ add_library(OpenEraKernel STATIC
     ThreadShims.h
     ThreadShims.cpp
     ProcessShims.h
-    ProcessShims.cpp)
+    ProcessShims.cpp
+    FileRouting.h
+    FileRouting.cpp
+    CrtFileShims.h
+    CrtFileShims.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
 
 target_link_libraries(OpenEraKernel

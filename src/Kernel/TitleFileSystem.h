@@ -45,6 +45,17 @@ public:
     [[nodiscard]] std::error_code Delete(const std::filesystem::path& relative);
     // Un-hides `relative` once something new was created there.
     void Undelete(const std::filesystem::path& relative);
+    // Hides the folder's `relative` (if it has one) without touching the overlay,
+    // for deletes that already happened there (by handle, or by moving it away).
+    void Hide(const std::filesystem::path& relative);
+
+    // Whether the overlay has its own copy of `relative`.
+    [[nodiscard]] bool InOverlay(const std::filesystem::path& relative) const;
+    // A directory with nothing visible in it, in either layer.
+    [[nodiscard]] bool IsEmptyDirectory(const std::filesystem::path& relative) const;
+    // Removes an empty directory: the overlay's copy, and hides the folder's.
+    // Fails with no_such_file_or_directory, not_a_directory or directory_not_empty.
+    [[nodiscard]] std::error_code RemoveEmptyDirectory(const std::filesystem::path& relative);
 
     // Overlay files OpenEra keeps for itself, which listings skip.
     [[nodiscard]] static bool IsInternal(const std::filesystem::path& relative);

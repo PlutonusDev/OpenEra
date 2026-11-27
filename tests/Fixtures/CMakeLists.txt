@@ -10,10 +10,14 @@ string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 add_library(OpenEraEhImage SHARED EhImage.cpp)
 add_library(OpenEraStartImage SHARED StartImage.cpp)
 add_library(OpenEraSyncImage SHARED SyncImage.cpp)
-set_target_properties(OpenEraEhImage OpenEraStartImage OpenEraSyncImage PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+add_library(OpenEraCrtFileImage SHARED CrtFileImage.cpp)
+set_target_properties(OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraCrtFileImage PROPERTIES MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 set_target_properties(OpenEraEhImage PROPERTIES OUTPUT_NAME EhImage)
 set_target_properties(OpenEraStartImage PROPERTIES OUTPUT_NAME StartImage)
 set_target_properties(OpenEraSyncImage PROPERTIES OUTPUT_NAME SyncImage)
+set_target_properties(OpenEraCrtFileImage PROPERTIES OUTPUT_NAME CrtFileImage)
+# It calls fopen and friends on purpose.
+target_compile_definitions(OpenEraCrtFileImage PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 add_executable(OpenEraEntryImage EntryImage.cpp)
 set_target_properties(OpenEraEntryImage PROPERTIES OUTPUT_NAME EntryImage)
@@ -27,5 +31,5 @@ target_compile_options(OpenEraIdentityImage PRIVATE /GS-)
 target_link_options(OpenEraIdentityImage PRIVATE /NODEFAULTLIB /ENTRY:IdentityImageStart /SUBSYSTEM:CONSOLE)
 target_link_libraries(OpenEraIdentityImage PRIVATE kernel32)
 
-add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraEntryImage
+add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraCrtFileImage OpenEraEntryImage
     OpenEraIdentityImage)
