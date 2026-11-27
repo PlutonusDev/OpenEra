@@ -258,12 +258,9 @@ ModuleManager::MapOutcome ModuleManager::MapTree(std::string_view name, size_t d
     m_logger.get().Info("Modules: mapped {} at {:#x}", fileName, module.Base());
 
     std::vector<std::string> dependencies;
-    dependencies.reserve(module.Pe.Imports.size() + module.Pe.DelayImports.size());
+    // Delay imports are left for the image's helper to load on first use.
+    dependencies.reserve(module.Pe.Imports.size());
     for (const auto& imported : module.Pe.Imports)
-    {
-        dependencies.push_back(imported.DllName);
-    }
-    for (const auto& imported : module.Pe.DelayImports)
     {
         dependencies.push_back(imported.DllName);
     }

@@ -221,16 +221,15 @@ TEST_CASE("ResolveImports binds shims by name, ordinal and delay-load", "[Import
     CHECK(ReadSlot(fixture.Image, kMathIat) == std::bit_cast<uint64_t>(&Add));
     CHECK(std::bit_cast<int (*)(int, int)>(ReadSlot(fixture.Image, kMathIat))(2, 3) == 5);
     CHECK(std::bit_cast<int (*)(int)>(ReadSlot(fixture.Image, kMathIat + 8))(4) == -4);
-    CHECK(ReadSlot(fixture.Image, kDelayIat) == std::bit_cast<uint64_t>(&Add)); // Delay imports bind eagerly.
+    CHECK(ReadSlot(fixture.Image, kDelayIat) == 0); // Left for the image's delay-load helper.
 
-    REQUIRE(imports.Bindings.size() == 6);
+    REQUIRE(imports.Bindings.size() == 5);
     CHECK(imports.StubbedCount() == 3);
     CHECK(imports.Bindings.at(0).Source == ImportSource::Shim);
     CHECK(imports.Bindings.at(1).Ordinal == uint16_t{7});
     CHECK(imports.Bindings.at(2).Source == ImportSource::Stub);
     CHECK(imports.Bindings.at(2).Symbol == "Gone");
-    CHECK(imports.Bindings.at(5).Delayed);
-    CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 3 shimmed, 0 passed through, 3 stubbed"));
+    CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 2 shimmed, 0 passed through, 3 stubbed"));
 }
 
 TEST_CASE("Unresolved imports call stubs that record hits and return a failure value", "[ImportResolver]")
@@ -366,9 +365,9 @@ TEST_CASE("Imports resolve as title module, then shim, then host, then stub", "[
         CHECK(imports.Bindings.at(5).Source == ImportSource::Host);
         CHECK(imports.Bindings.at(6).Source == ImportSource::Stub); // Not exported by the host.
         CHECK(imports.Bindings.at(4).Source == ImportSource::Stub); // xbox.dll: no shim and not allowed.
-        CHECK(imports.CountFrom(ImportSource::Shim) == 3);
+        CHECK(imports.CountFrom(ImportSource::Shim) == 2);
         CHECK(imports.CountFrom(ImportSource::Host) == 1);
-        CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 3 shimmed, 1 passed through, 4 stubbed"));
+        CHECK(fixture.Sink->Contains("Imports: 0 from title modules, 2 shimmed, 1 passed through, 4 stubbed"));
     }
 
     SECTION("a shim overrides the host export")

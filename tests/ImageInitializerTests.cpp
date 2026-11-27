@@ -129,3 +129,22 @@ TEST_CASE("RunEntryPoint returns the executable's exit code", "[initializer]")
     REQUIRE(module != nullptr);
     CHECK(fixture.Initializer().RunEntryPoint(*module) == std::optional<uint32_t>(42));
 }
+
+TEST_CASE("Delay-loaded DLLs load on first use, through the image's own helper", "[initializer][delayload]")
+{
+    constexpr std::string_view kDelayImage = "DelayImage.dll";
+    constexpr std::string_view kTarget = "DelayTargetImage.dll";
+    StartFixture fixture;
+    REQUIRE(fixture.Manager().Load(kDelayImage) == ModuleError::None);
+    CHECK(fixture.Manager().Find(kTarget) == nullptr);
+    CHECK(fixture.Manager().HandleOf(kTarget) == 0);
+
+    CHECK(fixture.Export<CountFunction>(kDelayImage, "CallDelayTarget")() == 42);
+    REQUIRE(fixture.Manager().Find(kTarget) != nullptr);
+    CHECK(fixture.Export<CountFunction>(kTarget, "DelayTargetAttaches")() == 1);
+    CHECK(fixture.Export<CountFunction>(kDelayImage, "CallDelayTarget")() == 42); // Bound now.
+
+    // A missing DLL fails only its first call, with the helper's ERROR_MOD_NOT_FOUND exception.
+    using MissingFunction = uint32_t();
+    CHECK(fixture.Export<MissingFunction>(kDelayImage, "CallDelayMissing")() == 0xC06D'007EU);
+}

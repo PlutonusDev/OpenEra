@@ -93,9 +93,9 @@ std::optional<uint64_t> FindIn(SymbolSource* source, std::string_view module, co
     return entry.Ordinal ? source->FindExport(module, *entry.Ordinal) : source->FindExport(module, entry.Name);
 }
 
-void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRegistry& shims,
-                Kernel::StubRegistry& stubs, const ImportSources& sources, BoundImports& bound,
-                std::vector<PendingStub>& pending, std::vector<uint64_t>& slots)
+void BindModule(const PeImportModule& module, const Kernel::ShimRegistry& shims, Kernel::StubRegistry& stubs,
+                const ImportSources& sources, BoundImports& bound, std::vector<PendingStub>& pending,
+                std::vector<uint64_t>& slots)
 {
     const auto* shimModule = shims.FindModule(module.DllName);
     const StubKind kind = shimModule != nullptr ? shimModule->Kind() : StubKindForModule(module.DllName);
@@ -107,8 +107,7 @@ void BindModule(const PeImportModule& module, bool delayed, const Kernel::ShimRe
                               .Symbol = entry.Name,
                               .Ordinal = entry.Ordinal,
                               .Address = 0,
-                              .Source = ImportSource::Stub,
-                              .Delayed = delayed};
+                              .Source = ImportSource::Stub};
 
         const auto shim =
             entry.Ordinal ? shims.Resolve(module.DllName, *entry.Ordinal) : shims.Resolve(module.DllName, entry.Name);
@@ -195,11 +194,7 @@ ResolveResult ResolveImportsImpl(const MappedImage& image, const PeImage& pe, co
     std::vector<uint64_t> slots; // IAT slot RVA for each binding.
     for (const auto& module : pe.Imports)
     {
-        BindModule(module, false, shims, stubs, sources, bound, pending, slots);
-    }
-    for (const auto& module : pe.DelayImports)
-    {
-        BindModule(module, true, shims, stubs, sources, bound, pending, slots);
+        BindModule(module, shims, stubs, sources, bound, pending, slots);
     }
 
     if (bound.Bindings.empty())
