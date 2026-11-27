@@ -50,6 +50,9 @@ struct LoadedModule
     std::unordered_map<std::string, size_t> ExportsByName;
     std::unordered_map<uint32_t, size_t> ExportsByOrdinal;
     bool Attached = false;
+    uint32_t References = 0; // LoadLibrary-style references.
+    bool Pinned = false;     // Never unloaded: loaded with Load, or pinned by GetModuleHandleEx.
+    bool Unloaded = false;   // Freed; its slot is kept so indices stay valid.
 
     [[nodiscard]] uint64_t Base() const noexcept { return Image.Base(); }
 };
@@ -68,6 +71,8 @@ public:
 
     [[nodiscard]] virtual bool Attach(const LoadedModule& module) = 0;
     virtual void Detach(const LoadedModule& module) = 0;
+    // Called after Detach, before a module's memory is freed.
+    virtual void Unloading(const LoadedModule& /*module*/) noexcept {}
 };
 
 enum class ModuleError : uint8_t
@@ -95,6 +100,7 @@ public:
     ModuleManager(ModuleReader reader, const Kernel::ShimRegistry& shims, Kernel::StubRegistry& stubs,
                   ImageAllocator& allocator, Core::Logger& logger, HostModules* host);
 
+    // Loads a module that stays loaded (the title's executable).
     [[nodiscard]] ModuleError Load(std::string_view name);
     void SetInitializer(ModuleInitializer* initializer) noexcept;
     // Folder the reader loads images from, so ImagePath can report where they are.
@@ -116,8 +122,15 @@ public:
     // Runtime loader (LoadLibrary, GetModuleHandle, GetProcAddress). Handles are
     // image bases for title modules, real HMODULEs for host modules, and
     // opaque pseudo-handles for shim-only modules. 0 means not found.
+    // Title modules are reference counted: LoadForRuntime and AddReference add
+    // one, Release drops one, and a module nothing loaded, pinned or importing
+    // it holds is detached and freed.
     [[nodiscard]] uint64_t LoadForRuntime(std::string_view name);
     [[nodiscard]] uint64_t HandleOf(std::string_view name);
+    // For a title module handle: pins it, or adds a reference. False if it isn't one.
+    bool AddReference(uint64_t handle, bool pin);
+    // False if `handle` isn't a title module.
+    bool Release(uint64_t handle);
     [[nodiscard]] uint64_t MainModuleHandle() const;
     // Host path of the title module at `handle` (0: the main one), or nullopt if
     // it isn't a title module or no image directory was set.
@@ -136,8 +149,16 @@ private:
         size_t Index = 0;
     };
 
+    enum class Hold : uint8_t
+    {
+        Pin,
+        Reference,
+    };
+
+    MapOutcome LoadLocked(std::string_view name, Hold hold);
     MapOutcome MapTree(std::string_view name, size_t depth, std::vector<size_t>& fresh);
     ModuleError Attach(size_t root);
+    void UnloadUnreferenced();
     [[nodiscard]] const LoadedModule* FindLocked(std::string_view name) const;
     [[nodiscard]] std::optional<uint64_t> ExportAddress(size_t module, size_t exportIndex, size_t depth);
     [[nodiscard]] std::optional<uint64_t> ResolveForwarder(std::string_view forwarder, size_t depth);
@@ -165,8 +186,8 @@ private:
 
 // Registers the loader shims, backed by ModuleManager::Active():
 // - kernel32.dll (aliases kernelbase and the libraryloader API sets):
-//   LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W}, GetProcAddress,
-//   FreeLibrary and RtlPcToFileHeader, plus the file (Kernel::AddFileExports)
+//   LoadLibrary{A,W,ExA,ExW}, GetModuleHandle{A,W,ExA,ExW}, GetProcAddress,
+//   FreeLibrary{,AndExitThread} and RtlPcToFileHeader, plus the file (Kernel::AddFileExports)
 //   and memory (Kernel::AddMemoryExports) shims, also under the file and
 //   memory API sets, and OutputDebugString{W,A} into the log
 //   (Kernel::AddDebugOutputExports), and thread affinity, priority and

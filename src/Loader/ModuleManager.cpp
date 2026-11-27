@@ -46,6 +46,15 @@ std::string FileNameFor(std::string_view name)
     return file;
 }
 
+// The loaded (not unloaded) module at `handle`, from a const or mutable deque.
+template <typename Modules>
+auto* LiveModule(Modules& modules, uint64_t handle) noexcept
+{
+    const auto it = std::ranges::find_if(modules, [handle](const LoadedModule& module) noexcept
+                                         { return handle != 0 && !module.Unloaded && module.Base() == handle; });
+    return it == modules.end() ? nullptr : &*it;
+}
+
 std::optional<uint16_t> ParseOrdinal(std::string_view text) noexcept
 {
     if (!text.starts_with('#'))
@@ -162,22 +171,57 @@ ModuleManager* ModuleManager::Active() noexcept
 ModuleError ModuleManager::Load(std::string_view name)
 {
     const std::scoped_lock lock(m_mutex);
+    return LoadLocked(name, Hold::Pin).Error;
+}
+
+ModuleManager::MapOutcome ModuleManager::LoadLocked(std::string_view name, Hold hold)
+{
     if (IsReservedModuleName(name))
     {
         m_logger.get().Warn("Modules: {} is a system module name and is never loaded from the title", name);
-        return ModuleError::Reserved;
+        return {.Error = ModuleError::Reserved, .Index = 0};
     }
 
     std::vector<size_t> fresh;
     const auto outcome = MapTree(name, 0, fresh);
     if (outcome.Error != ModuleError::None)
     {
-        return outcome.Error;
+        UnloadUnreferenced(); // Whatever was mapped before the failure.
+        return outcome;
+    }
+    // Held before anything runs, so a DllMain that frees libraries can't unload it.
+    auto& root = m_modules.at(outcome.Index);
+    if (hold == Hold::Pin)
+    {
+        root.Pinned = true;
+    }
+    else
+    {
+        ++root.References;
     }
     if (m_mainHandle == 0)
     {
-        m_mainHandle = m_modules.at(outcome.Index).Base();
+        m_mainHandle = root.Base();
     }
+
+    const auto fail = [&](ModuleError error)
+    {
+        auto& failed = m_modules.at(outcome.Index);
+        if (hold == Hold::Pin)
+        {
+            failed.Pinned = false;
+        }
+        else
+        {
+            --failed.References;
+        }
+        if (m_mainHandle == failed.Base() && !failed.Pinned)
+        {
+            m_mainHandle = 0;
+        }
+        UnloadUnreferenced();
+        return MapOutcome{.Error = error, .Index = 0};
+    };
 
     for (const size_t index : fresh)
     {
@@ -187,11 +231,131 @@ ModuleError ModuleManager::Load(std::string_view name)
         if (result.Error != ResolveError::None)
         {
             m_logger.get().Warn("Modules: linking {} failed ({})", module.Name, ToString(result.Error));
-            return ModuleError::LinkFailed;
+            return fail(ModuleError::LinkFailed);
         }
         module.Imports = std::move(result.Imports);
     }
-    return Attach(outcome.Index);
+    if (const auto error = Attach(outcome.Index); error != ModuleError::None)
+    {
+        return fail(error);
+    }
+    return outcome;
+}
+
+void ModuleManager::UnloadUnreferenced()
+{
+    // Held: pinned or referenced modules, and every title module they import from.
+    std::vector<bool> held(m_modules.size(), false);
+    std::vector<size_t> pending;
+    for (size_t index = 0; index < m_modules.size(); ++index)
+    {
+        const auto& module = m_modules.at(index);
+        if (!module.Unloaded && (module.Pinned || module.References != 0))
+        {
+            pending.push_back(index);
+        }
+    }
+    while (!pending.empty())
+    {
+        const size_t index = pending.back();
+        pending.pop_back();
+        if (held.at(index))
+        {
+            continue;
+        }
+        held.at(index) = true;
+        for (const size_t dependency : m_modules.at(index).Dependencies)
+        {
+            pending.push_back(dependency);
+        }
+    }
+
+    // Dependents detach before what they import, the reverse of attaching.
+    std::vector<size_t> unload;
+    for (auto it = m_attachOrder.rbegin(); it != m_attachOrder.rend(); ++it)
+    {
+        if (!held.at(*it))
+        {
+            unload.push_back(*it);
+        }
+    }
+    for (size_t index = 0; index < m_modules.size(); ++index)
+    {
+        if (!held.at(index) && !m_modules.at(index).Unloaded && !m_modules.at(index).Attached)
+        {
+            unload.push_back(index); // Mapped by a load that failed.
+        }
+    }
+    if (unload.empty())
+    {
+        return;
+    }
+
+    for (const size_t index : unload)
+    {
+        auto& module = m_modules.at(index);
+        if (module.Attached && m_initializer != nullptr)
+        {
+            m_initializer->Detach(module);
+        }
+        module.Attached = false;
+    }
+    for (const size_t index : unload)
+    {
+        auto& module = m_modules.at(index);
+        if (m_initializer != nullptr)
+        {
+            m_initializer->Unloading(module);
+        }
+        m_logger.get().Info("Modules: unloaded {}", module.Name);
+        std::erase(m_attachOrder, index);
+        m_byKey.erase(ModuleKey(module.Name));
+        module.Imports.reset();
+        module.Unwind.reset();
+        module.Image = MappedImage{};
+        module.Dependencies.clear();
+        module.ExportsByName.clear();
+        module.ExportsByOrdinal.clear();
+        module.Unloaded = true;
+    }
+}
+
+bool ModuleManager::AddReference(uint64_t handle, bool pin)
+{
+    const std::scoped_lock lock(m_mutex);
+    auto* const module = LiveModule(m_modules, handle);
+    if (module == nullptr)
+    {
+        return false;
+    }
+    if (pin)
+    {
+        module->Pinned = true;
+    }
+    else
+    {
+        ++module->References;
+    }
+    return true;
+}
+
+bool ModuleManager::Release(uint64_t handle)
+{
+    const std::scoped_lock lock(m_mutex);
+    auto* const module = LiveModule(m_modules, handle);
+    if (module == nullptr)
+    {
+        return false;
+    }
+    if (module->References != 0)
+    {
+        --module->References;
+        if (module->References == 0 && !module->Pinned)
+        {
+            UnloadUnreferenced();
+        }
+    }
+    return true;
 }
 
 ModuleManager::MapOutcome ModuleManager::MapTree(std::string_view name, size_t depth, std::vector<size_t>& fresh)
@@ -350,9 +514,7 @@ const LoadedModule* ModuleManager::Find(std::string_view name) const
 const LoadedModule* ModuleManager::FindByHandle(uint64_t handle) const
 {
     const std::scoped_lock lock(m_mutex);
-    const auto it = std::ranges::find_if(m_modules, [handle](const LoadedModule& module) noexcept
-                                         { return module.Base() == handle; });
-    return it == m_modules.end() ? nullptr : &*it;
+    return LiveModule(m_modules, handle);
 }
 
 std::vector<std::string> ModuleManager::AttachOrder() const
@@ -370,19 +532,20 @@ std::vector<std::string> ModuleManager::AttachOrder() const
 size_t ModuleManager::ModuleCount() const
 {
     const std::scoped_lock lock(m_mutex);
-    return m_modules.size();
+    return static_cast<size_t>(
+        std::ranges::count_if(m_modules, [](const LoadedModule& module) noexcept { return !module.Unloaded; }));
 }
 
 uint64_t ModuleManager::ImageBaseFor(uint64_t address) const
 {
     const std::scoped_lock lock(m_mutex);
-    const auto it =
-        std::ranges::find_if(m_modules,
-                             [address](const LoadedModule& module) noexcept
-                             {
-                                 const uint64_t base = module.Base();
-                                 return address >= base && address - base < module.Pe.OptionalHeader.SizeOfImage;
-                             });
+    const auto it = std::ranges::find_if(m_modules,
+                                         [address](const LoadedModule& module) noexcept
+                                         {
+                                             const uint64_t base = module.Base();
+                                             return !module.Unloaded && address >= base &&
+                                                    address - base < module.Pe.OptionalHeader.SizeOfImage;
+                                         });
     return it == m_modules.end() ? 0 : it->Base();
 }
 
@@ -493,16 +656,21 @@ uint64_t ModuleManager::LoadForRuntime(std::string_view name)
     {
         return 0;
     }
+    if (const auto* module = FindLocked(file))
+    {
+        AddReference(module->Base(), false);
+        return module->Base();
+    }
     if (const auto handle = HandleOf(file); handle != 0)
     {
         return handle;
     }
-    if (IsReservedModuleName(file) || Load(file) != ModuleError::None)
+    if (IsReservedModuleName(file))
     {
         return 0;
     }
-    const auto* module = FindLocked(file);
-    return module == nullptr ? 0 : module->Base();
+    const auto outcome = LoadLocked(file, Hold::Reference);
+    return outcome.Error == ModuleError::None ? m_modules.at(outcome.Index).Base() : 0;
 }
 
 void ModuleManager::SetImageDirectory(const std::filesystem::path& directory)
@@ -520,8 +688,8 @@ std::optional<std::filesystem::path> ModuleManager::ImagePath(uint64_t handle) c
     {
         return std::nullopt;
     }
-    const auto it =
-        std::ranges::find_if(m_modules, [base](const LoadedModule& module) noexcept { return module.Base() == base; });
+    const auto it = std::ranges::find_if(m_modules, [base](const LoadedModule& module) noexcept
+                                         { return !module.Unloaded && module.Base() == base; });
     if (it == m_modules.end())
     {
         return std::nullopt;

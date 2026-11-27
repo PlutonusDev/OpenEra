@@ -375,6 +375,66 @@ TEST_CASE("Loader shims back LoadLibrary, GetModuleHandle and GetProcAddress", "
     CHECK(GetLastError() == ERROR_INVALID_PARAMETER);
 }
 
+TEST_CASE("Runtime-loaded title modules unload when nothing holds them", "[ModuleManager]")
+{
+    const Fixture fixture;
+    RecordingInitializer initializer;
+    fixture.Manager->SetInitializer(&initializer);
+    auto& manager = *fixture.Manager;
+
+    SECTION("the last release unloads a module and the imports only it held")
+    {
+        CHECK(manager.LoadForRuntime("libb.dll") == kLibBBase); // Imports liba.dll.
+        CHECK(manager.LoadForRuntime("libb.dll") == kLibBBase);
+        CHECK(manager.ModuleCount() == 2);
+        CHECK(manager.Release(kLibBBase));
+        CHECK(manager.ModuleCount() == 2);
+        CHECK(manager.Release(kLibBBase));
+        CHECK(manager.ModuleCount() == 0);
+        CHECK(manager.Find("liba.dll") == nullptr);
+        CHECK(manager.HandleOf("libb.dll") == 0);
+        CHECK(manager.FindByHandle(kLibBBase) == nullptr);
+        CHECK(initializer.Events ==
+              std::vector<std::string>{"attach liba.dll", "attach libb.dll", "detach libb.dll", "detach liba.dll"});
+        CHECK_FALSE(manager.Release(kLibBBase)); // No longer a title module.
+    }
+
+    SECTION("a module another one still imports stays")
+    {
+        CHECK(manager.LoadForRuntime("liba.dll") == kLibABase); // Maps libb.dll too (an import cycle).
+        CHECK(manager.LoadForRuntime("libc.dll") == kLibCBase);
+        CHECK(manager.Release(kLibCBase));
+        CHECK(manager.Find("libc.dll") == nullptr);
+        CHECK(manager.ModuleCount() == 2);
+        CHECK(manager.AddReference(kLibBBase, false));
+        CHECK(manager.Release(kLibABase));
+        CHECK(manager.ModuleCount() == 2); // libb.dll is referenced and imports liba.dll.
+        CHECK(manager.Release(kLibBBase));
+        CHECK(manager.ModuleCount() == 0);
+    }
+
+    SECTION("pinned and statically loaded modules never unload")
+    {
+        REQUIRE(manager.Load("game.exe") == ModuleError::None);
+        CHECK(manager.LoadForRuntime("liba.dll") == kLibABase);
+        CHECK(manager.Release(kLibABase));
+        CHECK(manager.Release(kLibABase)); // More releases than loads are ignored.
+        CHECK(manager.LoadForRuntime("libc.dll") == kLibCBase);
+        CHECK(manager.AddReference(kLibCBase, true));
+        CHECK(manager.Release(kLibCBase));
+        CHECK(manager.ModuleCount() == 4);
+        manager.Shutdown();
+        CHECK(initializer.Events.back() == "detach libb.dll");
+    }
+
+    SECTION("a failed load leaves nothing mapped")
+    {
+        initializer.FailOn = "liba.dll";
+        CHECK(manager.LoadForRuntime("libb.dll") == 0);
+        CHECK(manager.ModuleCount() == 0);
+    }
+}
+
 TEST_CASE("DirectoryModuleReader reads plain names from one directory", "[ModuleManager]")
 {
     const std::filesystem::path directory = std::filesystem::temp_directory_path() / "openera-module-reader-test";
