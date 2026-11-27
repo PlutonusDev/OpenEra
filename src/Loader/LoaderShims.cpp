@@ -15,6 +15,7 @@
 #include "Kernel/MemoryShims.h"
 #include "Kernel/ShimGuard.h"
 #include "Kernel/ShimModule.h"
+#include "Kernel/ThreadShims.h"
 #include "Loader/ModuleManager.h"
 
 namespace OpenEra::Loader
@@ -201,7 +202,9 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
     for (const char* alias :
          {"api-ms-win-core-file-l1-1-0.dll", "api-ms-win-core-file-l1-2-0.dll", "api-ms-win-core-file-l1-2-1.dll",
           "api-ms-win-core-file-l1-2-2.dll", "api-ms-win-core-memory-l1-1-0.dll", "api-ms-win-core-memory-l1-1-1.dll",
-          "api-ms-win-core-memory-l1-1-2.dll", "api-ms-win-core-debug-l1-1-0.dll", "api-ms-win-core-debug-l1-1-1.dll"})
+          "api-ms-win-core-memory-l1-1-2.dll", "api-ms-win-core-debug-l1-1-0.dll", "api-ms-win-core-debug-l1-1-1.dll",
+          "api-ms-win-core-processthreads-l1-1-0.dll", "api-ms-win-core-processthreads-l1-1-1.dll",
+          "api-ms-win-core-processthreads-l1-1-2.dll", "api-ms-win-core-processthreads-l1-1-3.dll"})
     {
         kernel.AddAlias(alias);
     }
@@ -215,7 +218,7 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
                           kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
                           kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
                           Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) &&
-                          Kernel::AddDebugOutputExports(kernel);
+                          Kernel::AddDebugOutputExports(kernel) && Kernel::AddThreadExports(kernel);
 
     Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");

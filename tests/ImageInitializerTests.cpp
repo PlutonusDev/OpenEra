@@ -101,6 +101,10 @@ TEST_CASE("Mapped images get their own static TLS on every thread", "[initialize
     thread.join();
     CHECK(otherThread == 6); // A fresh copy of the template.
     CHECK(nextCounter() == 8);
+
+    // The same for a thread the image creates itself.
+    CHECK(fixture.Export<CountFunction>(kStartImage, "NextCounterOnNewThread")() == 6);
+    CHECK(nextCounter() == 9);
 }
 
 TEST_CASE("New threads attach to mapped images", "[initializer]")

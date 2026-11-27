@@ -77,6 +77,28 @@ DWORD WINAPI WaitForSignal(LPVOID parameter) noexcept
     }
     return 0;
 }
+
+constexpr DWORD kWorkerExitCode = 0x5EED;
+constexpr SIZE_T kWorkerStack = SIZE_T{1024} * 1024;
+
+struct Worker
+{
+    DWORD Slot = 0;
+    DWORD ThreadId = 0;
+    bool SlotIsolated = false;
+};
+
+DWORD WINAPI RunWorker(LPVOID parameter) noexcept
+{
+    auto& worker = *static_cast<Worker*>(parameter);
+    worker.ThreadId = GetCurrentThreadId();
+    // A new thread's slot starts empty, and its value is its own.
+    int local = 0;
+    const bool startsEmpty = TlsGetValue(worker.Slot) == nullptr;
+    TlsSetValue(worker.Slot, &local);
+    worker.SlotIsolated = startsEmpty && TlsGetValue(worker.Slot) == &local;
+    ExitThread(kWorkerExitCode);
+}
 } // namespace
 
 extern "C" __declspec(dllexport) unsigned RunSyncChecks() noexcept
@@ -174,6 +196,60 @@ extern "C" __declspec(dllexport) unsigned RunProcessChecks() noexcept
                   ? 0U
                   : 2U; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     failed |= LoadLibraryExW(L"SyncImage.dll", nullptr, 0) == self ? 0U : 4U;
+    return failed;
+}
+
+extern "C" __declspec(dllexport) unsigned RunThreadChecks() noexcept
+{
+    unsigned failed = 0;
+
+    // Threads, exit codes and TLS slots.
+    Worker worker;
+    worker.Slot = TlsAlloc();
+    int mine = 0;
+    TlsSetValue(worker.Slot, &mine);
+    auto* const thread =
+        CreateThread(nullptr, kWorkerStack, &RunWorker, &worker, STACK_SIZE_PARAM_IS_A_RESERVATION, nullptr);
+    DWORD exitCode = 0;
+    const bool joined = thread != nullptr && WaitForSingleObject(thread, 5'000) == WAIT_OBJECT_0 &&
+                        GetExitCodeThread(thread, &exitCode) != FALSE;
+    failed |= joined && exitCode == kWorkerExitCode ? 0U : 1U;
+    failed |= worker.ThreadId != 0 && worker.ThreadId != GetCurrentThreadId() ? 0U : 2U;
+    failed |= worker.SlotIsolated && TlsGetValue(worker.Slot) == &mine ? 0U : 4U;
+    failed |= TlsFree(worker.Slot) != FALSE ? 0U : 8U;
+
+    // Priorities: an undocumented value is clamped instead of failing.
+    auto* const self = GetCurrentThread();
+    const int before = GetThreadPriority(self);
+    failed |= SetThreadPriority(self, 5) != FALSE && GetThreadPriority(self) == THREAD_PRIORITY_HIGHEST ? 0U : 16U;
+    failed |= SetThreadPriority(self, THREAD_PRIORITY_TIME_CRITICAL) != FALSE &&
+                      GetThreadPriority(self) == THREAD_PRIORITY_TIME_CRITICAL
+                  ? 0U
+                  : 32U;
+    SetThreadPriority(self, before);
+
+    // Affinity: a console core this PC may not have still gets a processor.
+    if (thread != nullptr)
+    {
+        CloseHandle(thread);
+    }
+    const DWORD_PTR original = SetThreadAffinityMask(self, DWORD_PTR{1} << 63);
+    failed |= original != 0 ? 0U : 64U;
+    SetThreadAffinityMask(self, original);
+
+    // Names.
+    PWSTR name = nullptr;
+    const bool named = SUCCEEDED(SetThreadDescription(self, L"OpenEra test worker")) &&
+                       SUCCEEDED(GetThreadDescription(self, &name)) && name != nullptr &&
+                       lstrcmpW(name, L"OpenEra test worker") == 0;
+    failed |= named ? 0U : 128U;
+    LocalFree(name);
+    SetThreadDescription(self, L"");
+
+    // Yielding and sleeping.
+    Sleep(1);
+    failed |= SleepEx(1, TRUE) == 0 ? 0U : 256U;
+    SwitchToThread();
     return failed;
 }
 

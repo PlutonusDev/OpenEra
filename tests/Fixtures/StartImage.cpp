@@ -67,6 +67,29 @@ extern "C" __declspec(dllexport) int NextCounter() noexcept
     return ++t_counter;
 }
 
+namespace
+{
+DWORD WINAPI CountOnThread(LPVOID /*parameter*/) noexcept
+{
+    return static_cast<DWORD>(NextCounter());
+}
+} // namespace
+
+// thread_local in a thread the image creates itself: returns that thread's first count.
+extern "C" __declspec(dllexport) int NextCounterOnNewThread() noexcept
+{
+    auto* const thread = CreateThread(nullptr, 0, &CountOnThread, nullptr, 0, nullptr);
+    if (thread == nullptr)
+    {
+        return -1;
+    }
+    DWORD result = 0;
+    const bool joined =
+        WaitForSingleObject(thread, 5'000) == WAIT_OBJECT_0 && GetExitCodeThread(thread, &result) != FALSE;
+    CloseHandle(thread);
+    return joined ? static_cast<int>(result) : -1;
+}
+
 extern "C" __declspec(dllexport) int ProcessAttachCount() noexcept
 {
     return Get().ProcessAttach.load();

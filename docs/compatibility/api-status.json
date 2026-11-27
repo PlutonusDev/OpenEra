@@ -145,19 +145,19 @@
         {
           "name": "Threads and TLS",
           "functions": {
-            "CreateThread": "missing",
-            "ExitThread": "missing",
-            "GetCurrentThreadId": "missing",
-            "SetThreadPriority": "missing",
-            "SetThreadAffinityMask": "missing",
-            "SetThreadDescription": "missing",
-            "Sleep": "missing",
-            "SleepEx": "missing",
-            "SwitchToThread": "missing",
-            "TlsAlloc": "missing",
-            "TlsGetValue": "missing",
-            "TlsSetValue": "missing",
-            "TlsFree": "missing"
+            "CreateThread": "implemented",
+            "ExitThread": "implemented",
+            "GetCurrentThreadId": "implemented",
+            "SetThreadPriority": "implemented",
+            "SetThreadAffinityMask": "implemented",
+            "SetThreadDescription": "implemented",
+            "Sleep": "implemented",
+            "SleepEx": "implemented",
+            "SwitchToThread": "implemented",
+            "TlsAlloc": "implemented",
+            "TlsGetValue": "implemented",
+            "TlsSetValue": "implemented",
+            "TlsFree": "implemented"
           }
         },
         {
