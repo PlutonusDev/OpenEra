@@ -75,16 +75,32 @@ public:
     void Write(const LogRecord& record) override;
 };
 
-// Appends FormatLogLine output to a file, one line per record, flushed as it goes.
+enum class FileMode : uint8_t
+{
+    Append,   // Keep what the file already holds.
+    Truncate, // Start the file afresh.
+};
+
+// Writes FormatLogLine output to a file (UTF-8), one line per record. Lines are
+// buffered and flushed at Warn and above, so problems reach the disk at once
+// while chatty Trace / Info output stays cheap; everything is flushed on destruction.
 class FileSink final : public LogSink
 {
 public:
     // Throws std::system_error if the file can't be opened.
-    explicit FileSink(const std::filesystem::path& path);
+    explicit FileSink(const std::filesystem::path& path, FileMode mode = FileMode::Append);
     void Write(const LogRecord& record) override;
 
 private:
     std::ofstream m_stream;
+};
+
+// Sends FormatLogLine output to an attached debugger (OutputDebugStringW),
+// converting from UTF-8. Costs almost nothing when no debugger is attached.
+class DebuggerSink final : public LogSink
+{
+public:
+    void Write(const LogRecord& record) override;
 };
 
 // Thread-safe logger that fans records out to its sinks.

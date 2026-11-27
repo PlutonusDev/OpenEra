@@ -13,6 +13,7 @@
 #include <Windows.h>
 #include <timeapi.h>
 
+#include "App/Settings.h"
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
 #include "Kernel/ShimModule.h"
@@ -30,7 +31,6 @@ namespace
 using Core::Logger;
 using Loader::ModuleManager;
 
-constexpr DWORD kMaxPath = 32'768;
 constexpr UINT kTimerResolutionMs = 1;
 
 constexpr std::array<std::string_view, 4> kPackageExtensions = {".xvc", ".msixvc", ".xvd", ".msixvcbundle"};
@@ -78,28 +78,6 @@ std::optional<ExecutableLocation> LocateExecutable(std::string_view name)
     }
     return ExecutableLocation{.Directory = path.parent_path(),
                               .FileName = std::string(fileName.begin(), fileName.end())};
-}
-
-// Default overlay for a title: under %LOCALAPPDATA%, named after its identity.
-std::filesystem::path DefaultOverlay(std::string_view identity)
-{
-    std::string name;
-    for (const char value : identity)
-    {
-        const bool safe = (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
-                          (value >= '0' && value <= '9') || value == '.' || value == '-' || value == '_';
-        name += safe ? value : '_';
-    }
-    if (name.empty() || name.find_first_not_of('.') == std::string::npos)
-    {
-        name = "Title";
-    }
-    std::wstring localAppData(kMaxPath, L'\0');
-    const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData.data(), kMaxPath);
-    localAppData.resize(length < kMaxPath ? length : 0);
-    const std::filesystem::path base =
-        localAppData.empty() ? std::filesystem::temp_directory_path() : std::filesystem::path(localAppData);
-    return base / "OpenEra" / "Titles" / name / "Overlay";
 }
 
 // 1 ms timer resolution while a title runs: console titles expect Sleep and
@@ -255,7 +233,7 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     }
     Kernel::StubRegistry stubs(logger);
     Kernel::TitleFileSystem files(options.Folder, options.OverlayDirectory.empty()
-                                                      ? DefaultOverlay(config.Config->IdentityName)
+                                                      ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
                                                       : options.OverlayDirectory);
     const ActiveFileSystemScope activeFiles(files);
     logger.Info("Launch: title writes go to {}", files.OverlayRoot().string());

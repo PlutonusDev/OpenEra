@@ -15,8 +15,8 @@ void StderrSink::Write(const LogRecord& record)
     std::cerr << FormatLogLine(record) << '\n';
 }
 
-FileSink::FileSink(const std::filesystem::path& path)
-    : m_stream(path, std::ios::app)
+FileSink::FileSink(const std::filesystem::path& path, FileMode mode)
+    : m_stream(path, std::ios::binary | (mode == FileMode::Truncate ? std::ios::trunc : std::ios::app))
 {
     if (!m_stream)
     {
@@ -27,7 +27,10 @@ FileSink::FileSink(const std::filesystem::path& path)
 void FileSink::Write(const LogRecord& record)
 {
     m_stream << FormatLogLine(record) << '\n';
-    m_stream.flush();
+    if (record.Level >= LogLevel::Warn)
+    {
+        m_stream.flush();
+    }
 }
 
 void Logger::SetMinimumLevel(LogLevel level) noexcept

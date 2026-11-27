@@ -61,7 +61,8 @@ OpenEra is in **early development**. No commercial titles run yet.
 | :--- | :--- | :---: | :--- |
 | Build system & CI tooling | `CMake` | ✅ Done | C++20, `/W4 /WX`, MSVC + Clang-CL, C++ Core Check, clang-format / clang-tidy, Catch2 tests. |
 | Binary stream reader | `Core` | ✅ Done | Bounds-checked, non-throwing `ByteReader` used by every parser. |
-| Logging | `Core` | ✅ Done | Thread-safe, levelled logger with pluggable sinks. |
+| Logging | `Core` | ✅ Done | Thread-safe, levelled logger with sinks for the console, a file, an attached debugger and a log window. |
+| Configuration and assertions | `Core` | ✅ Done | Typed settings from TOML files and the command line (`openera config` lists them); `OPENERA_ASSERT` / `OPENERA_VERIFY` for Debug builds. |
 | PE/COFF reader | `Loader` | ✅ Done | PE32+ headers, sections, imports, exports, relocations, TLS, exception and delay-import directories. |
 | PE/DLL loader & import resolver | `Loader` | 🟡 In progress | Loads the title and its own DLLs, links them to each other, to shims and to host Windows DLLs, registers their unwind data so exceptions work, and starts them (static TLS, TLS callbacks, DllMain and the entry point). |
 | Run an unpacked title folder | `App` | ✅ Done | `openera run` reads `MicrosoftGame.config` and starts the title. |
@@ -113,6 +114,27 @@ build\src\App\openera.exe run <title folder>
 ```
 
 `run` starts the Xbox Series X|S executable by default; `--exe <Id>` picks another one from the config, and `--no-start` only loads and links it. `--gpu` picks the GPU: by default OpenEra puts the NVIDIA or AMD GPU in front of the title (on hybrid laptops too), and `--gpu nvidia|amd|intel|<index>` overrides that. Logging is set with `--log-level` (`trace`, `info`, `warn` or `error`) and `--log-file <path>`, and `--log-window` shows the log in its own window, coloured by level, that stays open after the title ends. Run `openera --help` for the full list.
+
+#### Settings
+
+Every option is also a setting, so you don't have to repeat it. Settings come from, in order (later ones win):
+
+1. `%LOCALAPPDATA%\OpenEra\openera.toml` (or the file given with `--config <path>`);
+2. the title's own `%LOCALAPPDATA%\OpenEra\Titles\<identity>\openera.toml`;
+3. the command line: the options above, and `--set <key>=<value>` for any setting.
+
+```toml
+# %LOCALAPPDATA%\OpenEra\openera.toml
+[log]
+level = "info"
+file = 'C:\Logs\openera.log'
+file_mode = "truncate"   # or "append"
+
+[graphics]
+gpu = "nvidia"
+```
+
+`openera config [<title folder>]` lists every setting with its description, current value and where that value came from. A bad value is reported with its file and line, and the previous value is kept. The files use a subset of TOML: tables, `key = value`, strings, integers, floats, booleans and comments.
 
 The title's own debug output (`OutputDebugString`) appears in the log as `Title: ...` lines, and the timer resolution is raised to 1 ms while it runs.
 
