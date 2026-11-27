@@ -16,7 +16,9 @@
 #include <Windows.h>
 
 #include "App/LogWindow.h"
+#include "App/Settings.h"
 #include "App/TitleLauncher.h"
+#include "Core/Config.h"
 #include "Core/Logger.h"
 #include "Graphics/AdapterSelection.h"
 #include "Loader/GameConfig.h"
@@ -35,8 +37,11 @@ extern "C"
 namespace
 {
 using OpenEra::App::LaunchError;
+using OpenEra::Core::Config;
+using OpenEra::Core::ConfigIssue;
 using OpenEra::Core::Logger;
 using OpenEra::Core::LogLevel;
+namespace Setting = OpenEra::App::Setting;
 
 // Exit codes. After a title runs, openera exits with the title's own exit code.
 constexpr int kExitSuccess = 0;
@@ -50,28 +55,31 @@ constexpr int kExitStart = 6;  // Start-up or the entry point failed.
 constexpr std::string_view kUsage = R"(Usage:
   openera run <title folder> [options]   Load and start a title
   openera info <title folder>            Show what MicrosoftGame.config describes
+  openera config [<title folder>]        List every setting, its value and where it came from
 
 The title folder is an unpacked title: the folder containing MicrosoftGame.config.
 
-Options for run:
-  --exe <Id>            Executable to start (default: the Xbox Series X|S one)
+Settings come from %LOCALAPPDATA%\OpenEra\openera.toml, then the title's own
+%LOCALAPPDATA%\OpenEra\Titles\<identity>\openera.toml, then the command line.
+
+Options:
+  --set <key>=<value>   Override a setting (see openera config)
+  --config <path>       Read user settings from this file instead
+  --exe <Id>            Executable to start (title.executable)
   --no-start            Load and link only
-  --gpu <choice>        auto (default: the NVIDIA or AMD GPU), nvidia, amd, intel or an adapter index
-  --log-level <level>   trace, info (default), warn or error
-  --log-file <path>     Also append the log to a file
-  --log-window          Also show the log in a window; it stays open after the title ends
+  --gpu <choice>        auto, nvidia, amd, intel or an adapter index (graphics.gpu)
+  --log-level <level>   trace, info, warn or error (log.level)
+  --log-file <path>     Also write the log to a file (log.file)
+  --log-window          Also show the log in a window (log.window)
 )";
 
 struct CommandLine
 {
     std::string Command;
-    std::filesystem::path Folder;
-    std::string ExecutableId;
+    std::optional<std::filesystem::path> Folder;
+    std::optional<std::filesystem::path> ConfigFile;
+    std::vector<std::string> Overrides; // key=value, in command-line order.
     bool Start = true;
-    LogLevel Level = LogLevel::Info;
-    std::filesystem::path LogFile;
-    bool LogWindow = false;
-    OpenEra::Graphics::GpuPreference Gpu;
 };
 
 std::string Narrow(const std::wstring& text)
@@ -87,82 +95,71 @@ std::string Narrow(const std::wstring& text)
     return result;
 }
 
-constexpr std::optional<LogLevel> ParseLevel(std::string_view text) noexcept
+std::string Assign(std::string_view key, const std::string& text)
 {
-    if (text == "trace")
-    {
-        return LogLevel::Trace;
-    }
-    if (text == "info")
-    {
-        return LogLevel::Info;
-    }
-    if (text == "warn")
-    {
-        return LogLevel::Warn;
-    }
-    if (text == "error")
-    {
-        return LogLevel::Error;
-    }
-    return std::nullopt;
+    return std::format("{}={}", key, OpenEra::Core::FormatSettingValue(text));
 }
 
 std::optional<CommandLine> ParseCommandLine(const std::vector<std::wstring>& arguments)
 {
-    if (arguments.size() < 2)
+    if (arguments.empty())
     {
         return std::nullopt;
     }
     CommandLine line;
     line.Command = Narrow(arguments.at(0));
-    line.Folder = arguments.at(1);
-    if (line.Command != "run" && line.Command != "info")
+    if (line.Command != "run" && line.Command != "info" && line.Command != "config")
     {
         return std::nullopt;
     }
-    for (size_t index = 2; index < arguments.size(); ++index)
+    for (size_t index = 1; index < arguments.size(); ++index)
     {
         const std::string option = Narrow(arguments.at(index));
         const bool hasValue = index + 1 < arguments.size();
-        if (option == "--no-start")
+        if (!option.starts_with("--") && !line.Folder)
+        {
+            line.Folder = arguments.at(index);
+        }
+        else if (option == "--no-start")
         {
             line.Start = false;
         }
-        else if (option == "--exe" && hasValue)
-        {
-            line.ExecutableId = Narrow(arguments.at(++index));
-        }
         else if (option == "--log-window")
         {
-            line.LogWindow = true;
+            line.Overrides.push_back(std::string(Setting::kLogWindow) + "=true");
+        }
+        else if (option == "--set" && hasValue)
+        {
+            line.Overrides.push_back(Narrow(arguments.at(++index)));
+        }
+        else if (option == "--config" && hasValue)
+        {
+            line.ConfigFile = arguments.at(++index);
+        }
+        else if (option == "--exe" && hasValue)
+        {
+            line.Overrides.push_back(Assign(Setting::kExecutable, Narrow(arguments.at(++index))));
         }
         else if (option == "--gpu" && hasValue)
         {
-            const auto gpu = OpenEra::Graphics::ParseGpuPreference(Narrow(arguments.at(++index)));
-            if (!gpu)
-            {
-                return std::nullopt;
-            }
-            line.Gpu = *gpu;
+            line.Overrides.push_back(Assign(Setting::kGpu, Narrow(arguments.at(++index))));
         }
         else if (option == "--log-file" && hasValue)
         {
-            line.LogFile = arguments.at(++index);
+            line.Overrides.push_back(Assign(Setting::kLogFile, Narrow(arguments.at(++index))));
         }
         else if (option == "--log-level" && hasValue)
         {
-            const auto level = ParseLevel(Narrow(arguments.at(++index)));
-            if (!level)
-            {
-                return std::nullopt;
-            }
-            line.Level = *level;
+            line.Overrides.push_back(Assign(Setting::kLogLevel, Narrow(arguments.at(++index))));
         }
         else
         {
             return std::nullopt;
         }
+    }
+    if (line.Command != "config" && !line.Folder)
+    {
+        return std::nullopt;
     }
     return line;
 }
@@ -189,6 +186,67 @@ constexpr int ExitCodeFor(LaunchError error) noexcept
     return kExitFailure;
 }
 
+void Append(std::vector<ConfigIssue>& issues, std::vector<ConfigIssue> more)
+{
+    issues.insert(issues.end(), std::make_move_iterator(more.begin()), std::make_move_iterator(more.end()));
+}
+
+struct LoadedSettings
+{
+    std::vector<ConfigIssue> Issues;
+    std::filesystem::path UserFile;
+    std::optional<std::filesystem::path> TitleFile;
+};
+
+// Defaults, the user's file, the title's file, then the command line.
+LoadedSettings LoadSettings(Config& config, const CommandLine& line)
+{
+    LoadedSettings loaded;
+    loaded.UserFile = line.ConfigFile.value_or(OpenEra::App::UserConfigPath());
+    Append(loaded.Issues, config.LoadFile(loaded.UserFile));
+    if (line.Folder)
+    {
+        // Only the identity is needed here; a broken config is reported when the title runs.
+        Logger quiet;
+        const auto title = OpenEra::App::ReadTitleConfig(*line.Folder, quiet);
+        if (title.Config)
+        {
+            loaded.TitleFile = OpenEra::App::TitleDataDirectory(title.Config->IdentityName) / "openera.toml";
+            Append(loaded.Issues, config.LoadFile(*loaded.TitleFile));
+        }
+    }
+    for (const auto& assignment : line.Overrides)
+    {
+        Append(loaded.Issues, config.ApplyOverride(assignment));
+    }
+    return loaded;
+}
+
+LogLevel LevelOf(const Config& config) noexcept
+{
+    try
+    {
+        const auto& level = config.GetString(Setting::kLogLevel);
+        if (level == "trace")
+        {
+            return LogLevel::Trace;
+        }
+        if (level == "warn")
+        {
+            return LogLevel::Warn;
+        }
+        if (level == "error")
+        {
+            return LogLevel::Error;
+        }
+    }
+    catch (const std::exception&)
+    {
+        return LogLevel::Info;
+    }
+    return LogLevel::Info;
+}
+
 int ShowInfo(const std::filesystem::path& folder, Logger& logger)
 {
     const auto result = OpenEra::App::ReadTitleConfig(folder, logger);
@@ -210,6 +268,32 @@ int ShowInfo(const std::filesystem::path& folder, Logger& logger)
     return kExitSuccess;
 }
 
+int ShowSettings(const Config& config, const LoadedSettings& loaded)
+{
+    std::cout << std::format("User settings:  {}\n", loaded.UserFile.string());
+    if (loaded.TitleFile)
+    {
+        std::cout << std::format("Title settings: {}\n", loaded.TitleFile->string());
+    }
+    for (const auto& setting : config.Schema())
+    {
+        std::cout << std::format("\n{} = {}  ({})\n    {}\n", setting.Key, config.FormatValue(setting.Key),
+                                 config.SourceOf(setting.Key), setting.Description);
+        std::string details = std::format("    {}, default {}", OpenEra::Core::ToString(setting.Type),
+                                          OpenEra::Core::FormatSettingValue(setting.Default));
+        if (!setting.Choices.empty())
+        {
+            details += "; one of";
+            for (const auto& choice : setting.Choices)
+            {
+                details += " " + choice;
+            }
+        }
+        std::cout << details << '\n';
+    }
+    return kExitSuccess;
+}
+
 // With the log in its own window, a console that only openera uses (one
 // Windows opened for it, rather than the terminal it was started from) just
 // shows a blank window, so let it go.
@@ -223,13 +307,22 @@ void DetachOwnConsole() noexcept
     }
 }
 
-int Run(const CommandLine& line, Logger& logger)
+int Run(const CommandLine& line, const Config& config, Logger& logger)
 {
     OpenEra::App::LaunchOptions options;
-    options.Folder = line.Folder;
-    options.ExecutableId = line.ExecutableId;
+    options.Folder = *line.Folder;
+    options.ExecutableId = config.GetString(Setting::kExecutable);
     options.Start = line.Start;
-    OpenEra::Graphics::SetGpuPreference(line.Gpu);
+    options.OverlayDirectory = std::filesystem::path(
+        std::u8string(config.GetString(Setting::kOverlay).begin(), config.GetString(Setting::kOverlay).end()));
+    const auto& gpu = config.GetString(Setting::kGpu);
+    const auto preference = OpenEra::Graphics::ParseGpuPreference(gpu);
+    if (!preference)
+    {
+        logger.Warn("Settings: {} \"{}\" isn't auto, nvidia, amd, intel or an adapter index; using auto", Setting::kGpu,
+                    gpu);
+    }
+    OpenEra::Graphics::SetGpuPreference(preference.value_or(OpenEra::Graphics::GpuPreference{}));
     const auto result = OpenEra::App::RunTitleFolder(options, logger);
     if (result.Error != LaunchError::None)
     {
@@ -258,21 +351,35 @@ int wmain(int argc, wchar_t** argv)
             return kExitUsage;
         }
 
+        Config config(OpenEra::App::LauncherSettings());
+        const auto loaded = LoadSettings(config, *line);
+        if (line->Command == "config")
+        {
+            for (const auto& issue : loaded.Issues)
+            {
+                std::cerr << "openera: " << ToString(issue) << '\n';
+            }
+            return ShowSettings(config, loaded);
+        }
+
         // The default logger, so shims that log through it (graphics) reach the same sinks.
         Logger& logger = OpenEra::Core::DefaultLogger();
-        logger.SetMinimumLevel(line->Level);
-        const bool useWindow = line->LogWindow && line->Command == "run";
+        logger.SetMinimumLevel(LevelOf(config));
+        const bool useWindow = config.GetBool(Setting::kLogWindow) && line->Command == "run";
         if (!useWindow)
         {
             logger.AddSink(std::make_shared<OpenEra::Core::StderrSink>());
         }
-        if (!line->LogFile.empty())
+        if (const auto& file = config.GetString(Setting::kLogFile); !file.empty())
         {
-            logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(line->LogFile));
+            const auto mode = config.GetString(Setting::kLogFileMode) == "truncate" ? OpenEra::Core::FileMode::Truncate
+                                                                                    : OpenEra::Core::FileMode::Append;
+            logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(
+                std::filesystem::path(std::u8string(file.begin(), file.end())), mode));
         }
-        if (line->Command == "info")
+        if (config.GetBool(Setting::kLogDebugger))
         {
-            return ShowInfo(line->Folder, logger);
+            logger.AddSink(std::make_shared<OpenEra::Core::DebuggerSink>());
         }
         std::shared_ptr<OpenEra::App::LogWindowSink> window;
         if (useWindow)
@@ -281,7 +388,12 @@ int wmain(int argc, wchar_t** argv)
             logger.AddSink(window);
             DetachOwnConsole();
         }
-        const int exitCode = Run(*line, logger);
+        for (const auto& issue : loaded.Issues)
+        {
+            logger.Warn("Settings: {}", ToString(issue));
+        }
+
+        const int exitCode = line->Command == "info" ? ShowInfo(*line->Folder, logger) : Run(*line, config, logger);
         if (window && window->IsOpen())
         {
             logger.Info("openera: finished with exit code {}. Close the log window to exit.", exitCode);

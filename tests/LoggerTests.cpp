@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -363,4 +364,51 @@ TEST_CASE("FileSink appends one line per record", "[Logger]")
     std::filesystem::remove(path);
 
     CHECK_THROWS_AS(OpenEra::Core::FileSink(path.parent_path() / "missing" / "x.log"), std::system_error);
+}
+
+TEST_CASE("FileSink appends or truncates, keeps UTF-8, and flushes at Warn", "[Logger]")
+{
+    const auto path = std::filesystem::temp_directory_path() / "OpenEraTests" / "FileSinkModes.log";
+    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::remove(path);
+    const auto readAll = [&path]
+    {
+        std::ifstream stream(path, std::ios::binary);
+        return std::string((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    };
+    {
+        Logger logger;
+        logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(path, OpenEra::Core::FileMode::Truncate));
+        logger.Info("J\xC3\xB6rg \xE2\x9C\x93 first");
+        logger.Warn("second");
+        // A warning reaches the disk at once, with everything before it.
+        const auto flushed = readAll();
+        CHECK(flushed.find("[INFO ] J\xC3\xB6rg \xE2\x9C\x93 first\n") != std::string::npos);
+        CHECK(flushed.find("[WARN ] second\n") != std::string::npos);
+    }
+    {
+        Logger logger;
+        logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(path, OpenEra::Core::FileMode::Append));
+        logger.Info("third");
+    }
+    auto text = readAll();
+    CHECK(text.find("first") != std::string::npos);
+    CHECK(text.find("third") != std::string::npos); // Flushed when the sink goes away.
+    {
+        Logger logger;
+        logger.AddSink(std::make_shared<OpenEra::Core::FileSink>(path, OpenEra::Core::FileMode::Truncate));
+        logger.Info("fourth");
+    }
+    text = readAll();
+    CHECK(text.find("first") == std::string::npos);
+    CHECK(text.find("fourth") != std::string::npos);
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("DebuggerSink is harmless without a debugger", "[Logger]")
+{
+    Logger logger;
+    logger.AddSink(std::make_shared<OpenEra::Core::DebuggerSink>());
+    logger.Info("to the debugger, if one is attached: J\xC3\xB6rg");
+    CHECK(logger.DroppedMessages() == 0);
 }

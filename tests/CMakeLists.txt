@@ -14,7 +14,9 @@ include(Catch)
 
 add_executable(OpenEraTests
     AdapterSelectionTests.cpp
+    AssertTests.cpp
     ByteReaderTests.cpp
+    ConfigTests.cpp
     ExceptionTests.cpp
     FileMemoryShimTests.cpp
     GameConfigTests.cpp
@@ -49,9 +51,16 @@ target_link_libraries(OpenEraTests PRIVATE
 target_include_directories(OpenEraTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(Fixtures)
-add_dependencies(OpenEraTests OpenEraFixtures OpenEraTlsSlot)
+
+# Fails assertions on request, for AssertTests.
+add_executable(OpenEraAssertHelper Helpers/AssertHelper.cpp)
+set_target_properties(OpenEraAssertHelper PROPERTIES OUTPUT_NAME AssertHelper)
+target_link_libraries(OpenEraAssertHelper PRIVATE OpenEra::Core OpenEra::CompileOptions)
+
+add_dependencies(OpenEraTests OpenEraFixtures OpenEraTlsSlot OpenEraAssertHelper)
 target_compile_definitions(OpenEraTests PRIVATE
     OPENERA_FIXTURE_DIR="${OPENERA_FIXTURE_DIR}"
-    OPENERA_TLS_SLOT="$<TARGET_FILE:OpenEraTlsSlot>")
+    OPENERA_TLS_SLOT="$<TARGET_FILE:OpenEraTlsSlot>"
+    OPENERA_ASSERT_HELPER=L"$<TARGET_FILE:OpenEraAssertHelper>")
 
 catch_discover_tests(OpenEraTests)

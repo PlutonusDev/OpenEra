@@ -4,7 +4,12 @@ add_library(OpenEraCore STATIC
     Logger.h
     Logger.cpp
     Xml.h
-    Xml.cpp)
+    Xml.cpp
+    Assert.h
+    Assert.cpp
+    Config.h
+    Config.cpp
+    DebuggerSink.cpp)
 add_library(OpenEra::Core ALIAS OpenEraCore)
 
 # Headers are included as "Core/ByteReader.h".

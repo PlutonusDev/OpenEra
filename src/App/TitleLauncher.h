@@ -49,7 +49,7 @@ struct LaunchOptions
     std::filesystem::path TlsSlot;       // Empty: next to the running executable.
     std::filesystem::path WorkDirectory; // Empty: OpenEra under the temp directory.
     // Where the title's writes go (the folder itself is never modified).
-    // Empty: %LOCALAPPDATA%OpenEraTitles<identity>Overlay.
+    // Empty: Overlay in App::TitleDataDirectory(identity).
     std::filesystem::path OverlayDirectory;
 };
 
