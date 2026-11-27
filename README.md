@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 
-[**Join our Discord**](https://discord.gg/openera) · [API Coverage](#api-coverage) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source)
+[**Join our Discord**](https://discord.gg/openera) · [API Coverage](#api-coverage) · [Architecture](#architecture) · [Project Status](#project-status) · [Compatibility](COMPATIBILITY.md) · [Building](#building-from-source) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -135,6 +135,8 @@ After the title runs, `openera` exits with the title's own exit code. Otherwise 
 Contributions are welcome. Before starting on something large, say hello on [Discord](https://discord.gg/openera) so work isn't duplicated.
 
 All contributions must follow the clean-room policy. Only use public documentation, observable runtime behaviour, or compatibly licensed open-source projects (with attribution). Never submit leaked code, disassembled Microsoft code, SDK headers or keys.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. It covers the clean-room rules in detail, toolchain setup, the build and lint checks CI runs, code style, commit messages and compatibility reports.
 
 ## License
 
