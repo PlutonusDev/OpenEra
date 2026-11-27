@@ -318,7 +318,13 @@ void DetachOwnConsole() noexcept
     }
 }
 
-int Run(const CommandLine& line, const Config& config, Logger& logger)
+struct RunOutcome
+{
+    int ExitCode = kExitSuccess;
+    bool LeftRunning = false; // Title threads still running: end without tearing down.
+};
+
+RunOutcome Run(const CommandLine& line, const Config& config, Logger& logger)
 {
     OpenEra::App::LaunchOptions options;
     options.Folder = *line.Folder;
@@ -338,9 +344,10 @@ int Run(const CommandLine& line, const Config& config, Logger& logger)
     const auto result = OpenEra::App::RunTitleFolder(options, logger);
     if (result.Error != LaunchError::None)
     {
-        return ExitCodeFor(result.Error);
+        return {.ExitCode = ExitCodeFor(result.Error), .LeftRunning = result.LeftRunning};
     }
-    return result.ExitCode ? std::bit_cast<int>(*result.ExitCode) : kExitSuccess;
+    return {.ExitCode = result.ExitCode ? std::bit_cast<int>(*result.ExitCode) : kExitSuccess,
+            .LeftRunning = result.LeftRunning};
 }
 } // namespace
 
@@ -405,13 +412,24 @@ int wmain(int argc, wchar_t** argv)
             logger.Warn("Settings: {}", ToString(issue));
         }
 
-        const int exitCode = line->Command == "info" ? ShowInfo(*line->Folder, logger) : Run(*line, config, logger);
+        const RunOutcome outcome = line->Command == "info"
+                                       ? RunOutcome{.ExitCode = ShowInfo(*line->Folder, logger), .LeftRunning = false}
+                                       : Run(*line, config, logger);
+        const int exitCode = outcome.ExitCode;
         if (window && window->IsOpen())
         {
             logger.Info("openera: finished with exit code {}. Close the log window to exit.", exitCode);
             window->WaitUntilClosed();
         }
-        logger.ClearSinks(); // The default logger outlives main; release the window now.
+        logger.ClearSinks(); // The default logger outlives main; release the window now (and flush the log file).
+        if (outcome.LeftRunning)
+        {
+            // The title asked the process to end and its threads still run: end it the way
+            // its ExitProcess would have, rather than unwinding OpenEra around them.
+            std::cout.flush();
+            std::cerr.flush();
+            TerminateProcess(GetCurrentProcess(), std::bit_cast<UINT>(exitCode));
+        }
         return exitCode;
     }
     catch (const std::exception& exception)

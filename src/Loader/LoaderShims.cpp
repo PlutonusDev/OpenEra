@@ -15,6 +15,7 @@
 
 #include "Kernel/CrtFileShims.h"
 #include "Kernel/DebugOutputShims.h"
+#include "Kernel/ExitShims.h"
 #include "Kernel/FileShims.h"
 #include "Kernel/MemoryShims.h"
 #include "Kernel/ProcessShims.h"
@@ -285,7 +286,7 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
                           kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
                           Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) &&
                           Kernel::AddDebugOutputExports(kernel) && Kernel::AddThreadExports(kernel) &&
-                          Kernel::AddProcessExports(kernel);
+                          Kernel::AddProcessExports(kernel) && Kernel::AddExitExports(kernel);
 
     Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");
@@ -296,8 +297,10 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
     Kernel::ShimModule ucrtbase("ucrtbase.dll", Kernel::StubKind::Win32Import);
     ucrtbase.AddAlias("api-ms-win-crt-stdio-l1-1-0.dll");
     ucrtbase.AddAlias("api-ms-win-crt-filesystem-l1-1-0.dll");
+    ucrtbase.AddAlias("api-ms-win-crt-runtime-l1-1-0.dll");
     Kernel::ShimModule msvcp("msvcp140.dll", Kernel::StubKind::Win32Import);
-    const bool runtimeExported = Kernel::AddCrtFileExports(ucrtbase) && Kernel::AddStlFileExports(msvcp);
+    const bool runtimeExported =
+        Kernel::AddCrtFileExports(ucrtbase) && Kernel::AddCrtExitExports(ucrtbase) && Kernel::AddStlFileExports(msvcp);
 
     Kernel::ShimModule vcruntime("vcruntime140.dll", Kernel::StubKind::Win32Import);
     const bool vcruntimeExported = vcruntime.Export("_CxxThrowException", Kernel::ToShimProc(&CxxThrowExceptionShim));

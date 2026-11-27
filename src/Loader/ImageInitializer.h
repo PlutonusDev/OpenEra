@@ -34,6 +34,15 @@ public:
     // Runs an executable's entry point on a new thread with the stack its
     // headers ask for, and returns its exit code once it finishes.
     [[nodiscard]] std::optional<uint32_t> RunEntryPoint(const LoadedModule& module);
+    // RunEntryPoint also returns when a title thread ends "the process"
+    // (Kernel::RequestTitleExit), with that exit code; a main thread still
+    // running then is stopped, as the process would have stopped it.
+
+    // Threads started since modules were attached that haven't ended (other
+    // than the caller): title threads, and host threads started on their behalf.
+    [[nodiscard]] size_t RunningThreadCount() const;
+    // Leaves the TLS slots loaded on destruction, for threads that are still running.
+    void KeepLoaded() noexcept;
 
     // OpenEraTlsSlot.dll next to the running executable.
     [[nodiscard]] static std::filesystem::path DefaultTlsSlotPath();

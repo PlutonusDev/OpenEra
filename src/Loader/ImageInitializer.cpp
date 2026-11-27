@@ -15,12 +15,14 @@
 #include <system_error>
 #include <tuple>
 #include <type_traits>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include <Windows.h>
 
 #include "Core/Logger.h"
+#include "Kernel/ExitShims.h"
 #include "Kernel/ShimGuard.h"
 #include "Loader/ImageMapper.h"
 
@@ -37,6 +39,8 @@ using SetNotifyFunction = void(ThreadNotify) noexcept;
 constexpr uint16_t kFileDll = 0x2000; // IMAGE_FILE_DLL in the PE Format specification.
 constexpr uint32_t kNotifierTemplateSize = 8;
 constexpr DWORD kMaxPath = 32'768;
+// How long the main thread gets to finish once another title thread asked to exit.
+constexpr DWORD kExitGraceMs = 2'000;
 constexpr std::string_view kSlotFileName = "OpenEraTlsSlot.dll";
 
 struct LibraryDeleter
@@ -166,8 +170,10 @@ struct ImageInitializer::State
     // since thread notifications arrive under the OS loader lock.
     std::mutex Mutex;
     std::vector<std::reference_wrapper<const LoadedModule>> Attached; // Thread notifications, in attach order.
+    std::unordered_set<DWORD> LiveThreads; // Threads started since the first attach, still running.
+    bool KeepSlotsLoaded = false;
 
-    State(std::filesystem::path slotSource, std::filesystem::path workDirectory, Logger& log) noexcept
+    State(std::filesystem::path slotSource, std::filesystem::path workDirectory, Logger& log)
         : SlotSource(std::move(slotSource))
         , WorkDirectory(std::move(workDirectory))
         , Log(log)
@@ -193,6 +199,14 @@ struct ImageInitializer::State
             {
                 const std::scoped_lock lock(state->Mutex);
                 modules = state->Attached;
+                if (reason == DLL_THREAD_ATTACH)
+                {
+                    state->LiveThreads.insert(GetCurrentThreadId());
+                }
+                else
+                {
+                    state->LiveThreads.erase(GetCurrentThreadId());
+                }
             }
             for (const LoadedModule& module : modules)
             {
@@ -352,7 +366,9 @@ ImageInitializer::ImageInitializer(std::filesystem::path tlsSlot, std::filesyste
     State* expected = m_state.get();
     State::Active().compare_exchange_strong(expected, nullptr);
     // Freeing a slot waits for the OS loader lock, so in-flight notifications finish first.
-    while (!m_state->Slots.empty())
+    // With title threads still running, freeing it would pull their TLS away; the
+    // process is about to end anyway, so the slots stay loaded (their files stay too).
+    while (!m_state->KeepSlotsLoaded && !m_state->Slots.empty())
     {
         Slot& slot = m_state->Slots.back();
         slot.Module.reset();
@@ -415,14 +431,48 @@ std::optional<uint32_t> ImageInitializer::RunEntryPoint(const LoadedModule& modu
         log.Warn("Modules: starting {} failed ({})", module.Name, GetLastError());
         return std::nullopt;
     }
-    WaitForSingleObject(thread.get(), INFINITE);
+    // The entry point returning, or any title thread ending "the process" (Kernel::RequestTitleExit).
+    const std::array<HANDLE, 2> waits = {thread.get(), Kernel::TitleExitEvent()};
+    const DWORD signalled = WaitForMultipleObjects(2, waits.data(), FALSE, INFINITE);
+    if (signalled == WAIT_OBJECT_0 + 1 && WaitForSingleObject(thread.get(), kExitGraceMs) == WAIT_TIMEOUT)
+    {
+        // Another thread asked to exit; the main thread would have been ended with the process.
+        const uint32_t code = Kernel::TitleExitCode().value_or(0);
+        log.Info("Modules: {} asked to exit; stopping its main thread", module.Name);
+        TerminateThread(thread.get(), code);
+        WaitForSingleObject(thread.get(), INFINITE);
+        const std::scoped_lock lock(m_state->Mutex);
+        m_state->LiveThreads.erase(GetThreadId(thread.get()));
+    }
     DWORD exitCode = 0;
     if (GetExitCodeThread(thread.get(), &exitCode) == FALSE)
     {
         return std::nullopt;
     }
+    if (const auto requested = Kernel::TitleExitCode())
+    {
+        log.Info("Modules: {} exited the process with {}", module.Name, *requested);
+        return *requested;
+    }
     log.Info("Modules: {} entry point returned {}", module.Name, exitCode);
     return exitCode;
+}
+
+size_t ImageInitializer::RunningThreadCount() const
+{
+    const std::scoped_lock lock(m_state->Mutex);
+    const DWORD self = GetCurrentThreadId();
+    size_t running = 0;
+    for (const DWORD id : m_state->LiveThreads)
+    {
+        running += id != self ? 1 : 0;
+    }
+    return running;
+}
+
+void ImageInitializer::KeepLoaded() noexcept
+{
+    m_state->KeepSlotsLoaded = true;
 }
 
 std::filesystem::path ImageInitializer::DefaultTlsSlotPath()

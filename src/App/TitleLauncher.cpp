@@ -7,6 +7,7 @@
 #include <iterator>
 #include <memory>
 #include <system_error>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,7 @@
 #include "App/Settings.h"
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
+#include "Kernel/ExitShims.h"
 #include "Kernel/ProcessShims.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
@@ -124,12 +126,22 @@ public:
             logger.Warn("Launch: couldn't make {} the current directory ({})", folder.string(), error.message());
         }
         Kernel::SetTitleProcess(std::move(identity));
+        Kernel::ArmTitleExit();
+        // The title's C runtime installs its own; it mustn't outlive the title's code.
+        m_previousFilter = SetUnhandledExceptionFilter(nullptr);
+        SetUnhandledExceptionFilter(m_previousFilter);
     }
 
     ~TitleProcessScope()
     {
+        if (m_keep)
+        {
+            return;
+        }
         try
         {
+            SetUnhandledExceptionFilter(m_previousFilter);
+            Kernel::DisarmTitleExit();
             Kernel::SetTitleProcess(std::nullopt);
             std::error_code error;
             std::filesystem::current_path(m_previousDirectory, error);
@@ -145,8 +157,13 @@ public:
     TitleProcessScope(TitleProcessScope&&) = delete;
     TitleProcessScope& operator=(TitleProcessScope&&) = delete;
 
+    // Leaves everything as the title sees it, for its threads that are still running.
+    void Keep() noexcept { m_keep = true; }
+
 private:
     std::filesystem::path m_previousDirectory;
+    LPTOP_LEVEL_EXCEPTION_FILTER m_previousFilter = nullptr;
+    bool m_keep = false;
 };
 
 // Keeps the file shims pointed at `files` while it's alive.
@@ -157,12 +174,23 @@ public:
     {
         Kernel::TitleFileSystem::SetActive(&files);
     }
-    ~ActiveFileSystemScope() { Kernel::TitleFileSystem::SetActive(nullptr); }
+    ~ActiveFileSystemScope()
+    {
+        if (!m_keep)
+        {
+            Kernel::TitleFileSystem::SetActive(nullptr);
+        }
+    }
 
     ActiveFileSystemScope(const ActiveFileSystemScope&) = delete;
     ActiveFileSystemScope& operator=(const ActiveFileSystemScope&) = delete;
     ActiveFileSystemScope(ActiveFileSystemScope&&) = delete;
     ActiveFileSystemScope& operator=(ActiveFileSystemScope&&) = delete;
+
+    void Keep() noexcept { m_keep = true; }
+
+private:
+    bool m_keep = false;
 };
 
 // Keeps the loader shims pointed at `manager` while it's alive.
@@ -170,12 +198,43 @@ class ActiveManagerScope
 {
 public:
     explicit ActiveManagerScope(ModuleManager& manager) noexcept { ModuleManager::SetActive(&manager); }
-    ~ActiveManagerScope() { ModuleManager::SetActive(nullptr); }
+    ~ActiveManagerScope()
+    {
+        if (!m_keep)
+        {
+            ModuleManager::SetActive(nullptr);
+        }
+    }
 
     ActiveManagerScope(const ActiveManagerScope&) = delete;
     ActiveManagerScope& operator=(const ActiveManagerScope&) = delete;
     ActiveManagerScope(ActiveManagerScope&&) = delete;
     ActiveManagerScope& operator=(ActiveManagerScope&&) = delete;
+
+    void Keep() noexcept { m_keep = true; }
+
+private:
+    bool m_keep = false;
+};
+
+// Everything a running title uses. When title threads outlive the run they may
+// still be executing its code, stubs and files, so it's then left alive until
+// openera exits, as the process would have ended them.
+struct TitleSession
+{
+    explicit TitleSession(Logger& logger)
+        : Stubs(logger)
+    {
+    }
+
+    Kernel::ShimRegistry Shims;
+    Kernel::StubRegistry Stubs;
+    std::optional<Kernel::TitleFileSystem> Files;
+    std::unique_ptr<Loader::ImageAllocator> Allocator = Loader::CreateVirtualImageAllocator();
+    std::unique_ptr<Loader::HostModules> Host = Loader::HostModules::CreateDefault();
+    // Declared before the manager, so it's destroyed after it.
+    std::optional<Loader::ImageInitializer> Initializer;
+    std::optional<ModuleManager> Manager;
 };
 } // namespace
 
@@ -266,23 +325,19 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     logger.Info("Launch: {} {} ({}), executable {}", config.Config->IdentityName, config.Config->Version,
                 config.Config->TitleId, executable->Name);
 
-    Kernel::ShimRegistry shims;
-    if (!Loader::RegisterLoaderShims(shims) || !Graphics::RegisterGraphicsShims(shims))
+    auto session = std::make_unique<TitleSession>(logger);
+    if (!Loader::RegisterLoaderShims(session->Shims) || !Graphics::RegisterGraphicsShims(session->Shims))
     {
         result.Error = LaunchError::LoadFailed;
         return result;
     }
-    Kernel::StubRegistry stubs(logger);
-    Kernel::TitleFileSystem files(options.Folder, options.OverlayDirectory.empty()
-                                                      ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
-                                                      : options.OverlayDirectory);
-    const ActiveFileSystemScope activeFiles(files);
+    auto& files = session->Files.emplace(
+        options.Folder, options.OverlayDirectory.empty() ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
+                                                         : options.OverlayDirectory);
+    ActiveFileSystemScope activeFiles(files);
     logger.Info("Launch: title writes go to {}", files.OverlayRoot().string());
-    const auto allocator = Loader::CreateVirtualImageAllocator();
-    const auto host = Loader::HostModules::CreateDefault();
 
-    // Declared before the manager, so it's destroyed after it.
-    std::optional<Loader::ImageInitializer> initializer;
+    auto& initializer = session->Initializer;
     if (options.Start)
     {
         initializer.emplace(options.TlsSlot.empty() ? Loader::ImageInitializer::DefaultTlsSlotPath() : options.TlsSlot,
@@ -290,8 +345,9 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
                                                           : options.WorkDirectory,
                             logger);
     }
-    ModuleManager manager(Loader::DirectoryModuleReader(options.Folder / location->Directory), shims, stubs, *allocator,
-                          logger, host.get());
+    auto& manager =
+        session->Manager.emplace(Loader::DirectoryModuleReader(options.Folder / location->Directory), session->Shims,
+                                 session->Stubs, *session->Allocator, logger, session->Host.get());
     if (initializer)
     {
         manager.SetInitializer(&*initializer);
@@ -300,9 +356,9 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     manager.SetImageDirectory(imageDirectory);
     const auto image =
         imageDirectory / std::filesystem::path(std::u8string(location->FileName.begin(), location->FileName.end()));
-    const TitleProcessScope process({.Image = image, .CommandLine = Kernel::BuildCommandLine(image, options.Arguments)},
-                                    std::filesystem::absolute(options.Folder), logger);
-    const ActiveManagerScope active(manager);
+    TitleProcessScope process({.Image = image, .CommandLine = Kernel::BuildCommandLine(image, options.Arguments)},
+                              std::filesystem::absolute(options.Folder), logger);
+    ActiveManagerScope active(manager);
     const TimerResolutionScope timer;
     if (!timer.Raised())
     {
@@ -318,6 +374,7 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     {
         const auto* module = manager.Find(location->FileName);
         result.ExitCode = module == nullptr ? std::nullopt : initializer->RunEntryPoint(*module);
+        result.ExitRequested = Kernel::TitleExitCode().has_value();
         if (!result.ExitCode)
         {
             result.Error = LaunchError::StartFailed;
@@ -328,8 +385,23 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
         logger.Info("Launch: loaded and linked {} module(s); not started", manager.ModuleCount());
     }
 
+    if (initializer && initializer->RunningThreadCount() != 0)
+    {
+        const size_t running = initializer->RunningThreadCount();
+        // Shutting down under them would pull their code, TLS and files away.
+        logger.Info("Launch: {} title thread(s) still running; leaving the title loaded until openera exits", running);
+        initializer->KeepLoaded();
+        activeFiles.Keep();
+        active.Keep();
+        process.Keep();
+        session->Stubs.LogSummary();
+        std::ignore = session.release(); // Intentionally kept for those threads.
+        result.LeftRunning = true;
+        return result;
+    }
+
     manager.Shutdown();
-    stubs.LogSummary();
+    session->Stubs.LogSummary();
     return result;
 }
 } // namespace OpenEra::App

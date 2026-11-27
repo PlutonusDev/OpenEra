@@ -31,5 +31,16 @@ target_compile_options(OpenEraIdentityImage PRIVATE /GS-)
 target_link_options(OpenEraIdentityImage PRIVATE /NODEFAULTLIB /ENTRY:IdentityImageStart /SUBSYSTEM:CONSOLE)
 target_link_libraries(OpenEraIdentityImage PRIVATE kernel32)
 
+# Ends the process in different ways, without the C runtime.
+add_executable(OpenEraExitImage ExitImage.cpp)
+set_target_properties(OpenEraExitImage PROPERTIES OUTPUT_NAME ExitImage)
+target_compile_options(OpenEraExitImage PRIVATE /GS-)
+target_link_options(OpenEraExitImage PRIVATE /NODEFAULTLIB /ENTRY:ExitImageStart /SUBSYSTEM:CONSOLE)
+target_link_libraries(OpenEraExitImage PRIVATE kernel32)
+
+# A plain /MD program whose main returns, so the C runtime calls exit.
+add_executable(OpenEraCrtExitImage CrtExitImage.cpp)
+set_target_properties(OpenEraCrtExitImage PROPERTIES OUTPUT_NAME CrtExitImage MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+
 add_custom_target(OpenEraFixtures DEPENDS OpenEraEhImage OpenEraStartImage OpenEraSyncImage OpenEraCrtFileImage OpenEraEntryImage
-    OpenEraIdentityImage)
+    OpenEraIdentityImage OpenEraExitImage OpenEraCrtExitImage)

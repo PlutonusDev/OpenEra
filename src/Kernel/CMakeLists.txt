@@ -20,7 +20,9 @@ add_library(OpenEraKernel STATIC
     FileRouting.h
     FileRouting.cpp
     CrtFileShims.h
-    CrtFileShims.cpp)
+    CrtFileShims.cpp
+    ExitShims.h
+    ExitShims.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
 
 target_link_libraries(OpenEraKernel

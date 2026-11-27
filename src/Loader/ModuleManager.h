@@ -173,6 +173,9 @@ private:
 //   naming (Kernel::AddThreadExports), also under the processthreads API sets.
 // - The title as the process image: GetModuleFileName{W,A} for title modules,
 //   and GetCommandLine{W,A} / QueryFullProcessImageName{W,A} (Kernel::AddProcessExports).
+// - Exits that end only the title (Kernel::AddExitExports, AddCrtExitExports).
+// - ucrtbase.dll and msvcp140.dll: the C runtime's and C++ library's file
+//   functions (Kernel::AddCrtFileExports, AddStlFileExports) and exit.
 // - ntdll.dll (aliases the rtlsupport API sets): RtlPcToFileHeader.
 // - vcruntime140.dll: _CxxThrowException, which records the thrower's image
 //   base for title modules the OS loader doesn't know.
