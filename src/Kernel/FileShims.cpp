@@ -1,53 +1,30 @@
 #include "FileShims.h"
 
-#include <algorithm>
 #include <bit>
 #include <cstdint>
-#include <filesystem>
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
-#include <string_view>
-#include <system_error>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <Windows.h>
 
+#include "Kernel/FileRouting.h"
 #include "Kernel/ShimGuard.h"
 #include "Kernel/ShimModule.h"
-#include "Kernel/TitleFileSystem.h"
 
 namespace OpenEra::Kernel
 {
 namespace
 {
+using FileRouting::InTitle;
+using FileRouting::TitlePath;
+
 constexpr DWORD kWriteAccess = GENERIC_WRITE | GENERIC_ALL | FILE_WRITE_DATA | FILE_APPEND_DATA |
                                FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | DELETE | WRITE_DAC | WRITE_OWNER;
-
-struct TitlePath
-{
-    std::reference_wrapper<TitleFileSystem> Files;
-    std::filesystem::path Relative;
-};
-
-// The active title file system and `name` relative to its folder, if it's inside.
-std::optional<TitlePath> InTitle(LPCWSTR name)
-{
-    TitleFileSystem* const files = TitleFileSystem::Active();
-    if (files == nullptr || name == nullptr || *name == L'\0')
-    {
-        return std::nullopt;
-    }
-    auto relative = files->TitleRelative(std::filesystem::path(name));
-    if (!relative)
-    {
-        return std::nullopt;
-    }
-    return TitlePath{.Files = *files, .Relative = std::move(*relative)};
-}
 
 bool WantsWrite(const TitlePath& path, DWORD access, DWORD disposition, DWORD flags)
 {
@@ -66,6 +43,51 @@ bool WantsWrite(const TitlePath& path, DWORD access, DWORD disposition, DWORD fl
     default:
         return false;
     }
+}
+
+// A CreateFile-style open of `name`: through the layer for title paths, unchanged otherwise.
+template <typename Open>
+HANDLE OpenRouted(LPCWSTR name, DWORD access, DWORD disposition, DWORD flags, Open open)
+{
+    const auto path = InTitle(name);
+    if (!path)
+    {
+        return open(name);
+    }
+    const bool writes = WantsWrite(*path, access, disposition, flags);
+    // CREATE_ALWAYS replaces the contents, so there's nothing to copy.
+    const auto routed =
+        writes ? FileRouting::ForWrite(*path, disposition != CREATE_ALWAYS) : FileRouting::ForRead(*path);
+    if (!routed.HostPath)
+    {
+        SetLastError(routed.Error);
+        return INVALID_HANDLE_VALUE;
+    }
+    auto* const file = open(routed.HostPath->c_str());
+    if (file != INVALID_HANDLE_VALUE && writes)
+    {
+        path->Files.get().Undelete(path->Relative);
+        const bool deleteOnClose = (flags & FILE_FLAG_DELETE_ON_CLOSE) != 0;
+        if ((access & DELETE) != 0 || deleteOnClose)
+        {
+            FileRouting::TrackHandle(file, *path, deleteOnClose);
+        }
+    }
+    return file;
+}
+
+// Runs `routed` for title paths (returning a Win32 error) and `host` otherwise.
+template <typename Routed, typename Host>
+BOOL RunRouted(LPCWSTR name, Routed routed, Host host)
+{
+    const auto path = InTitle(name);
+    if (!path)
+    {
+        return host();
+    }
+    const DWORD error = routed(*path);
+    SetLastError(error);
+    return error == ERROR_SUCCESS ? TRUE : FALSE;
 }
 
 // FindFirstFile handles OpenEra creates for merged listings.
@@ -121,102 +143,45 @@ FindHandles& Handles()
     return handles;
 }
 
-constexpr wchar_t AsciiLower(wchar_t value) noexcept
-{
-    constexpr std::wstring_view kUpper = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    constexpr std::wstring_view kLower = L"abcdefghijklmnopqrstuvwxyz";
-    const auto index = kUpper.find(value);
-    return index == std::wstring_view::npos ? value : kLower.at(index);
-}
-
-std::wstring Lowered(std::wstring text)
-{
-    std::ranges::transform(text, text.begin(), AsciiLower);
-    return text;
-}
-
-// Appends the matches of `pattern` in one layer, skipping names already listed.
-template <typename Skip>
-void AddMatches(const std::filesystem::path& pattern, FINDEX_INFO_LEVELS level, FINDEX_SEARCH_OPS search, DWORD flags,
-                std::vector<WIN32_FIND_DATAW>& entries, std::unordered_map<std::wstring, size_t>& byName, Skip skip)
-{
-    WIN32_FIND_DATAW data{};
-    auto* const find = FindFirstFileExW(pattern.c_str(), level, &data, search, nullptr, flags);
-    if (find == INVALID_HANDLE_VALUE)
-    {
-        return;
-    }
-    do
-    {
-        const auto& fileName = data.cFileName;
-        const std::wstring name(std::begin(fileName), std::ranges::find(fileName, L'\0'));
-        if (!skip(name) && byName.emplace(Lowered(name), entries.size()).second)
-        {
-            entries.push_back(data);
-        }
-    } while (FindNextFileW(find, &data) != FALSE);
-    FindClose(find);
-}
-
-HANDLE FindInTitle(const TitlePath& path, FINDEX_INFO_LEVELS level, WIN32_FIND_DATAW& first, FINDEX_SEARCH_OPS search,
-                   DWORD flags)
-{
-    const std::filesystem::path directory = path.Relative.parent_path();
-    const std::filesystem::path spec = path.Relative.filename();
-    auto state = std::make_unique<FindState>();
-    std::unordered_map<std::wstring, size_t> byName;
-    // Overlay entries win over the folder's; deleted and internal names are hidden.
-    AddMatches(path.Files.get().OverlayRoot() / directory / spec, level, search, flags, state->Entries, byName,
-               [&](const std::wstring& name) { return TitleFileSystem::IsInternal(directory / name); });
-    AddMatches(path.Files.get().TitleRoot() / directory / spec, level, search, flags, state->Entries, byName,
-               [&](const std::wstring& name)
-               { return name != L"." && name != L".." && path.Files.get().IsDeleted(directory / name); });
-    if (state->Entries.empty())
-    {
-        SetLastError(ERROR_FILE_NOT_FOUND);
-        return INVALID_HANDLE_VALUE;
-    }
-    first = state->Entries.front();
-    state->Next = 1;
-    return Handles().Add(std::move(state));
-}
-
 HANDLE WINAPI CreateFileWShim(LPCWSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES security,
                               DWORD disposition, DWORD flags, HANDLE templateFile) noexcept
 {
     return GuardShim<HANDLE>(
         "CreateFileW", INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE,
+        [=]
+        {
+            return OpenRouted(name, access, disposition, flags, [=](LPCWSTR path) noexcept
+                              { return CreateFileW(path, access, share, security, disposition, flags, templateFile); });
+        });
+}
+
+HANDLE WINAPI CreateFileAShim(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES security, DWORD disposition,
+                              DWORD flags, HANDLE templateFile) noexcept
+{
+    return GuardShim<HANDLE>(
+        "CreateFileA", INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE,
         [=]() -> HANDLE
         {
-            const auto path = InTitle(name);
-            if (!path)
+            if (name == nullptr || TitleFileSystem::Active() == nullptr)
             {
-                return CreateFileW(name, access, share, security, disposition, flags, templateFile);
+                return CreateFileA(name, access, share, security, disposition, flags, templateFile);
             }
-            if (!WantsWrite(*path, access, disposition, flags))
-            {
-                const auto read = path->Files.get().ReadPath(path->Relative);
-                if (!read)
-                {
-                    SetLastError(ERROR_FILE_NOT_FOUND);
-                    return INVALID_HANDLE_VALUE;
-                }
-                return CreateFileW(read->c_str(), access, share, security, disposition, flags, templateFile);
-            }
-            // CREATE_ALWAYS replaces the contents, so there's nothing to copy.
-            const auto write = path->Files.get().WritePath(path->Relative, disposition != CREATE_ALWAYS);
-            if (!write)
-            {
-                SetLastError(ERROR_PATH_NOT_FOUND);
-                return INVALID_HANDLE_VALUE;
-            }
-            auto* const file = CreateFileW(write->c_str(), access, share, security, disposition, flags, templateFile);
-            if (file != INVALID_HANDLE_VALUE)
-            {
-                path->Files.get().Undelete(path->Relative);
-            }
-            return file;
+            const std::wstring wide = FileRouting::FromAnsi(name);
+            return CreateFileWShim(wide.c_str(), access, share, security, disposition, flags, templateFile);
         });
+}
+
+HANDLE WINAPI CreateFile2Shim(LPCWSTR name, DWORD access, DWORD share, DWORD disposition,
+                              LPCREATEFILE2_EXTENDED_PARAMETERS parameters) noexcept
+{
+    return GuardShim<HANDLE>("CreateFile2", INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE,
+                             [=]
+                             {
+                                 const DWORD flags = parameters == nullptr ? 0 : parameters->dwFileFlags;
+                                 return OpenRouted(
+                                     name, access, disposition, flags, [=](LPCWSTR path) noexcept
+                                     { return CreateFile2(path, access, share, disposition, parameters); });
+                             });
 }
 
 DWORD WINAPI GetFileAttributesWShim(LPCWSTR name) noexcept
@@ -229,13 +194,26 @@ DWORD WINAPI GetFileAttributesWShim(LPCWSTR name) noexcept
                                 {
                                     return GetFileAttributesW(name);
                                 }
-                                const auto read = path->Files.get().ReadPath(path->Relative);
-                                if (!read)
+                                const auto read = FileRouting::ForRead(*path);
+                                if (!read.HostPath)
                                 {
-                                    SetLastError(ERROR_FILE_NOT_FOUND);
+                                    SetLastError(read.Error);
                                     return INVALID_FILE_ATTRIBUTES;
                                 }
-                                return GetFileAttributesW(read->c_str());
+                                return GetFileAttributesW(read.HostPath->c_str());
+                            });
+}
+
+DWORD WINAPI GetFileAttributesAShim(LPCSTR name) noexcept
+{
+    return GuardShim<DWORD>("GetFileAttributesA", INVALID_FILE_ATTRIBUTES, INVALID_FILE_ATTRIBUTES,
+                            [=]() -> DWORD
+                            {
+                                if (name == nullptr || TitleFileSystem::Active() == nullptr)
+                                {
+                                    return GetFileAttributesA(name);
+                                }
+                                return GetFileAttributesWShim(FileRouting::FromAnsi(name).c_str());
                             });
 }
 
@@ -249,13 +227,13 @@ BOOL WINAPI GetFileAttributesExWShim(LPCWSTR name, GET_FILEEX_INFO_LEVELS level,
                                {
                                    return GetFileAttributesExW(name, level, information);
                                }
-                               const auto read = path->Files.get().ReadPath(path->Relative);
-                               if (!read)
+                               const auto read = FileRouting::ForRead(*path);
+                               if (!read.HostPath)
                                {
-                                   SetLastError(ERROR_FILE_NOT_FOUND);
+                                   SetLastError(read.Error);
                                    return FALSE;
                                }
-                               return GetFileAttributesExW(read->c_str(), level, information);
+                               return GetFileAttributesExW(read.HostPath->c_str(), level, information);
                            });
 }
 
@@ -270,8 +248,20 @@ HANDLE WINAPI FindFirstFileExWShim(LPCWSTR name, FINDEX_INFO_LEVELS level, LPVOI
                                  {
                                      return FindFirstFileExW(name, level, data, search, filter, flags);
                                  }
+                                 auto state = std::make_unique<FindState>();
+                                 state->Entries = FileRouting::Matches(*path, level, search, flags);
+                                 if (state->Entries.empty())
+                                 {
+                                     const auto directory = path->Relative.parent_path();
+                                     const bool directoryVisible =
+                                         directory.empty() || path->Files.get().Exists(directory);
+                                     SetLastError(directoryVisible ? ERROR_FILE_NOT_FOUND : ERROR_PATH_NOT_FOUND);
+                                     return INVALID_HANDLE_VALUE;
+                                 }
                                  // Both information levels fill a WIN32_FIND_DATAW.
-                                 return FindInTitle(*path, level, *static_cast<WIN32_FIND_DATAW*>(data), search, flags);
+                                 *static_cast<WIN32_FIND_DATAW*>(data) = state->Entries.front();
+                                 state->Next = 1;
+                                 return Handles().Add(std::move(state));
                              });
 }
 
@@ -312,58 +302,284 @@ BOOL WINAPI FindCloseShim(HANDLE find) noexcept
 BOOL WINAPI CreateDirectoryWShim(LPCWSTR name, LPSECURITY_ATTRIBUTES security) noexcept
 {
     return GuardShim<BOOL>("CreateDirectoryW", FALSE, FALSE,
+                           [=]
+                           {
+                               return RunRouted(
+                                   name,
+                                   [=](const TitlePath& path) { return FileRouting::MakeDirectory(path, security); },
+                                   [=]() noexcept { return CreateDirectoryW(name, security); });
+                           });
+}
+
+BOOL WINAPI CreateDirectoryAShim(LPCSTR name, LPSECURITY_ATTRIBUTES security) noexcept
+{
+    return GuardShim<BOOL>("CreateDirectoryA", FALSE, FALSE,
                            [=]() -> BOOL
                            {
-                               const auto path = InTitle(name);
-                               if (!path)
+                               if (name == nullptr || TitleFileSystem::Active() == nullptr)
                                {
-                                   return CreateDirectoryW(name, security);
+                                   return CreateDirectoryA(name, security);
                                }
-                               if (path->Files.get().Exists(path->Relative))
+                               return CreateDirectoryWShim(FileRouting::FromAnsi(name).c_str(), security);
+                           });
+}
+
+BOOL WINAPI RemoveDirectoryWShim(LPCWSTR name) noexcept
+{
+    return GuardShim<BOOL>("RemoveDirectoryW", FALSE, FALSE,
+                           [=]
+                           {
+                               return RunRouted(
+                                   name, [](const TitlePath& path) { return FileRouting::RemoveDirectoryAt(path); },
+                                   [=]() noexcept { return RemoveDirectoryW(name); });
+                           });
+}
+
+BOOL WINAPI RemoveDirectoryAShim(LPCSTR name) noexcept
+{
+    return GuardShim<BOOL>("RemoveDirectoryA", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               if (name == nullptr || TitleFileSystem::Active() == nullptr)
                                {
-                                   SetLastError(ERROR_ALREADY_EXISTS);
-                                   return FALSE;
+                                   return RemoveDirectoryA(name);
                                }
-                               const auto parent = path->Relative.parent_path();
-                               if (!parent.empty() && !path->Files.get().Exists(parent))
-                               {
-                                   SetLastError(ERROR_PATH_NOT_FOUND);
-                                   return FALSE;
-                               }
-                               const auto write = path->Files.get().WritePath(path->Relative, false);
-                               if (!write)
-                               {
-                                   SetLastError(ERROR_PATH_NOT_FOUND);
-                                   return FALSE;
-                               }
-                               const BOOL created = CreateDirectoryW(write->c_str(), security);
-                               if (created != FALSE)
-                               {
-                                   path->Files.get().Undelete(path->Relative);
-                               }
-                               return created;
+                               return RemoveDirectoryWShim(FileRouting::FromAnsi(name).c_str());
                            });
 }
 
 BOOL WINAPI DeleteFileWShim(LPCWSTR name) noexcept
 {
     return GuardShim<BOOL>("DeleteFileW", FALSE, FALSE,
+                           [=]
+                           {
+                               return RunRouted(
+                                   name, [](const TitlePath& path) { return FileRouting::Delete(path); },
+                                   [=]() noexcept { return DeleteFileW(name); });
+                           });
+}
+
+BOOL WINAPI DeleteFileAShim(LPCSTR name) noexcept
+{
+    return GuardShim<BOOL>("DeleteFileA", FALSE, FALSE,
                            [=]() -> BOOL
                            {
-                               const auto path = InTitle(name);
-                               if (!path)
+                               if (name == nullptr || TitleFileSystem::Active() == nullptr)
                                {
-                                   return DeleteFileW(name);
+                                   return DeleteFileA(name);
                                }
-                               const auto error = path->Files.get().Delete(path->Relative);
-                               if (error)
+                               return DeleteFileWShim(FileRouting::FromAnsi(name).c_str());
+                           });
+}
+
+BOOL WINAPI MoveFileExWShim(LPCWSTR from, LPCWSTR to, DWORD flags) noexcept
+{
+    return GuardShim<BOOL>("MoveFileExW", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               if (!InTitle(from) && !InTitle(to))
                                {
-                                   SetLastError(error == std::errc::no_such_file_or_directory
-                                                    ? ERROR_FILE_NOT_FOUND
-                                                    : std::bit_cast<DWORD>(error.value()));
+                                   return MoveFileExW(from, to, flags);
+                               }
+                               const DWORD error = FileRouting::Move(from, to, flags);
+                               SetLastError(error);
+                               return error == ERROR_SUCCESS ? TRUE : FALSE;
+                           });
+}
+
+// Host paths for a copy where either side is in the title folder: the source
+// read through the layer, the target written to the overlay. Nullopt passes through.
+struct CopyRoute
+{
+    std::wstring Source;
+    std::wstring Target;
+    std::optional<TitlePath> TargetTitle;
+    DWORD Error = ERROR_SUCCESS;
+};
+
+std::optional<CopyRoute> RouteCopy(LPCWSTR from, LPCWSTR to, bool failIfExists)
+{
+    const auto source = InTitle(from);
+    const auto target = InTitle(to);
+    if (!source && !target)
+    {
+        return std::nullopt;
+    }
+    CopyRoute route{.Source = from == nullptr ? L"" : from,
+                    .Target = to == nullptr ? L"" : to,
+                    .TargetTitle = std::nullopt,
+                    .Error = ERROR_SUCCESS};
+    if (source)
+    {
+        const auto read = FileRouting::ForRead(*source);
+        if (!read.HostPath || !source->Files.get().Exists(source->Relative))
+        {
+            route.Error = ERROR_FILE_NOT_FOUND;
+            return route;
+        }
+        route.Source = *read.HostPath;
+    }
+    if (target)
+    {
+        if (failIfExists && target->Files.get().Exists(target->Relative))
+        {
+            route.Error = ERROR_FILE_EXISTS;
+            return route;
+        }
+        const auto write = FileRouting::ForWrite(*target, false);
+        if (!write.HostPath)
+        {
+            route.Error = write.Error;
+            return route;
+        }
+        route.Target = *write.HostPath;
+        route.TargetTitle = target;
+    }
+    return route;
+}
+
+void CopyFinished(const CopyRoute& route, bool copied)
+{
+    if (copied && route.TargetTitle)
+    {
+        route.TargetTitle->Files.get().Undelete(route.TargetTitle->Relative);
+    }
+}
+
+BOOL WINAPI CopyFileExWShim(LPCWSTR from, LPCWSTR to, LPPROGRESS_ROUTINE progress, LPVOID data, LPBOOL cancel,
+                            DWORD flags) noexcept
+{
+    return GuardShim<BOOL>("CopyFileExW", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               const auto route = RouteCopy(from, to, (flags & COPY_FILE_FAIL_IF_EXISTS) != 0);
+                               if (!route)
+                               {
+                                   return CopyFileExW(from, to, progress, data, cancel, flags);
+                               }
+                               if (route->Error != ERROR_SUCCESS)
+                               {
+                                   SetLastError(route->Error);
                                    return FALSE;
                                }
-                               return TRUE;
+                               const BOOL copied = CopyFileExW(route->Source.c_str(), route->Target.c_str(), progress,
+                                                               data, cancel, flags);
+                               CopyFinished(*route, copied != FALSE);
+                               return copied;
+                           });
+}
+
+BOOL WINAPI CopyFileWShim(LPCWSTR from, LPCWSTR to, BOOL failIfExists) noexcept
+{
+    return CopyFileExWShim(from, to, nullptr, nullptr, nullptr, failIfExists != FALSE ? COPY_FILE_FAIL_IF_EXISTS : 0);
+}
+
+BOOL WINAPI CopyFileAShim(LPCSTR from, LPCSTR to, BOOL failIfExists) noexcept
+{
+    return GuardShim<BOOL>("CopyFileA", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               if (from == nullptr || to == nullptr || TitleFileSystem::Active() == nullptr)
+                               {
+                                   return CopyFileA(from, to, failIfExists);
+                               }
+                               return CopyFileWShim(FileRouting::FromAnsi(from).c_str(),
+                                                    FileRouting::FromAnsi(to).c_str(), failIfExists);
+                           });
+}
+
+HRESULT WINAPI CopyFile2Shim(PCWSTR from, PCWSTR to, COPYFILE2_EXTENDED_PARAMETERS* parameters) noexcept
+{
+    return std::bit_cast<HRESULT>(
+        GuardHResult("CopyFile2",
+                     [=]() -> HResult
+                     {
+                         const DWORD flags = parameters == nullptr ? 0 : parameters->dwCopyFlags;
+                         const auto route = RouteCopy(from, to, (flags & COPY_FILE_FAIL_IF_EXISTS) != 0);
+                         if (!route)
+                         {
+                             return std::bit_cast<HResult>(CopyFile2(from, to, parameters));
+                         }
+                         if (route->Error != ERROR_SUCCESS)
+                         {
+                             return std::bit_cast<HResult>(HRESULT_FROM_WIN32(route->Error));
+                         }
+                         const HRESULT copied = CopyFile2(route->Source.c_str(), route->Target.c_str(), parameters);
+                         CopyFinished(*route, SUCCEEDED(copied));
+                         return std::bit_cast<HResult>(copied);
+                     }));
+}
+
+BOOL WINAPI MoveFileWShim(LPCWSTR from, LPCWSTR to) noexcept
+{
+    return MoveFileExWShim(from, to, MOVEFILE_COPY_ALLOWED);
+}
+
+BOOL WINAPI MoveFileExAShim(LPCSTR from, LPCSTR to, DWORD flags) noexcept
+{
+    return GuardShim<BOOL>("MoveFileExA", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               if (from == nullptr || to == nullptr || TitleFileSystem::Active() == nullptr)
+                               {
+                                   return MoveFileExA(from, to, flags);
+                               }
+                               return MoveFileExWShim(FileRouting::FromAnsi(from).c_str(),
+                                                      FileRouting::FromAnsi(to).c_str(), flags);
+                           });
+}
+
+BOOL WINAPI MoveFileAShim(LPCSTR from, LPCSTR to) noexcept
+{
+    return MoveFileExAShim(from, to, MOVEFILE_COPY_ALLOWED);
+}
+
+// A delete through a handle OpenEra opened in the overlay also hides the folder's file.
+BOOL WINAPI SetFileInformationByHandleShim(HANDLE file, FILE_INFO_BY_HANDLE_CLASS type, LPVOID information,
+                                           DWORD size) noexcept
+{
+    return GuardShim<BOOL>("SetFileInformationByHandle", FALSE, FALSE,
+                           [=]() -> BOOL
+                           {
+                               if (information == nullptr)
+                               {
+                                   return SetFileInformationByHandle(file, type, information, size);
+                               }
+                               bool deletes = false;
+                               if (type == FileDispositionInfo && size >= sizeof(FILE_DISPOSITION_INFO))
+                               {
+                                   deletes =
+                                       static_cast<const FILE_DISPOSITION_INFO*>(information)->DeleteFile != FALSE;
+                               }
+                               else if (type == FileDispositionInfoEx && size >= sizeof(FILE_DISPOSITION_INFO_EX))
+                               {
+                                   deletes = (static_cast<const FILE_DISPOSITION_INFO_EX*>(information)->Flags &
+                                              FILE_DISPOSITION_FLAG_DELETE) != 0;
+                               }
+                               if (deletes)
+                               {
+                                   if (const DWORD error = FileRouting::CanDeleteThrough(file); error != ERROR_SUCCESS)
+                                   {
+                                       SetLastError(error);
+                                       return FALSE;
+                                   }
+                               }
+                               const BOOL set = SetFileInformationByHandle(file, type, information, size);
+                               if (set != FALSE && deletes)
+                               {
+                                   FileRouting::HandleDeleted(file);
+                               }
+                               return set;
+                           });
+}
+
+BOOL WINAPI CloseHandleShim(HANDLE handle) noexcept
+{
+    return GuardShim<BOOL>("CloseHandle", FALSE, FALSE,
+                           [=]
+                           {
+                               FileRouting::HandleClosed(handle);
+                               return CloseHandle(handle);
                            });
 }
 } // namespace
@@ -371,13 +587,30 @@ BOOL WINAPI DeleteFileWShim(LPCWSTR name) noexcept
 bool AddFileExports(ShimModule& kernel32)
 {
     return kernel32.Export("CreateFileW", ToShimProc(&CreateFileWShim)) &&
+           kernel32.Export("CreateFileA", ToShimProc(&CreateFileAShim)) &&
+           kernel32.Export("CreateFile2", ToShimProc(&CreateFile2Shim)) &&
            kernel32.Export("GetFileAttributesW", ToShimProc(&GetFileAttributesWShim)) &&
+           kernel32.Export("GetFileAttributesA", ToShimProc(&GetFileAttributesAShim)) &&
            kernel32.Export("GetFileAttributesExW", ToShimProc(&GetFileAttributesExWShim)) &&
            kernel32.Export("FindFirstFileW", ToShimProc(&FindFirstFileWShim)) &&
            kernel32.Export("FindFirstFileExW", ToShimProc(&FindFirstFileExWShim)) &&
            kernel32.Export("FindNextFileW", ToShimProc(&FindNextFileWShim)) &&
            kernel32.Export("FindClose", ToShimProc(&FindCloseShim)) &&
            kernel32.Export("CreateDirectoryW", ToShimProc(&CreateDirectoryWShim)) &&
-           kernel32.Export("DeleteFileW", ToShimProc(&DeleteFileWShim));
+           kernel32.Export("CreateDirectoryA", ToShimProc(&CreateDirectoryAShim)) &&
+           kernel32.Export("RemoveDirectoryW", ToShimProc(&RemoveDirectoryWShim)) &&
+           kernel32.Export("RemoveDirectoryA", ToShimProc(&RemoveDirectoryAShim)) &&
+           kernel32.Export("DeleteFileW", ToShimProc(&DeleteFileWShim)) &&
+           kernel32.Export("DeleteFileA", ToShimProc(&DeleteFileAShim)) &&
+           kernel32.Export("MoveFileExW", ToShimProc(&MoveFileExWShim)) &&
+           kernel32.Export("MoveFileW", ToShimProc(&MoveFileWShim)) &&
+           kernel32.Export("MoveFileExA", ToShimProc(&MoveFileExAShim)) &&
+           kernel32.Export("MoveFileA", ToShimProc(&MoveFileAShim)) &&
+           kernel32.Export("CopyFileExW", ToShimProc(&CopyFileExWShim)) &&
+           kernel32.Export("CopyFileW", ToShimProc(&CopyFileWShim)) &&
+           kernel32.Export("CopyFileA", ToShimProc(&CopyFileAShim)) &&
+           kernel32.Export("CopyFile2", ToShimProc(&CopyFile2Shim)) &&
+           kernel32.Export("SetFileInformationByHandle", ToShimProc(&SetFileInformationByHandleShim)) &&
+           kernel32.Export("CloseHandle", ToShimProc(&CloseHandleShim));
 }
 } // namespace OpenEra::Kernel

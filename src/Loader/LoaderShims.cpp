@@ -13,6 +13,7 @@
 
 #include <Windows.h>
 
+#include "Kernel/CrtFileShims.h"
 #include "Kernel/DebugOutputShims.h"
 #include "Kernel/FileShims.h"
 #include "Kernel/MemoryShims.h"
@@ -291,10 +292,18 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-2-0.dll");
     const bool ntdllExported = ntdll.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim));
 
+    // The C runtime's and C++ library's file functions, through the title file layer.
+    Kernel::ShimModule ucrtbase("ucrtbase.dll", Kernel::StubKind::Win32Import);
+    ucrtbase.AddAlias("api-ms-win-crt-stdio-l1-1-0.dll");
+    ucrtbase.AddAlias("api-ms-win-crt-filesystem-l1-1-0.dll");
+    Kernel::ShimModule msvcp("msvcp140.dll", Kernel::StubKind::Win32Import);
+    const bool runtimeExported = Kernel::AddCrtFileExports(ucrtbase) && Kernel::AddStlFileExports(msvcp);
+
     Kernel::ShimModule vcruntime("vcruntime140.dll", Kernel::StubKind::Win32Import);
     const bool vcruntimeExported = vcruntime.Export("_CxxThrowException", Kernel::ToShimProc(&CxxThrowExceptionShim));
 
-    return exported && ntdllExported && vcruntimeExported && shims.Register(std::move(kernel)) &&
-           shims.Register(std::move(ntdll)) && shims.Register(std::move(vcruntime));
+    return exported && ntdllExported && vcruntimeExported && runtimeExported && shims.Register(std::move(kernel)) &&
+           shims.Register(std::move(ntdll)) && shims.Register(std::move(vcruntime)) &&
+           shims.Register(std::move(ucrtbase)) && shims.Register(std::move(msvcp));
 }
 } // namespace OpenEra::Loader

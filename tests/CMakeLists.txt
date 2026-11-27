@@ -17,6 +17,7 @@ add_executable(OpenEraTests
     AssertTests.cpp
     ByteReaderTests.cpp
     ConfigTests.cpp
+    CrtFileTests.cpp
     ExceptionTests.cpp
     FileMemoryShimTests.cpp
     GameConfigTests.cpp

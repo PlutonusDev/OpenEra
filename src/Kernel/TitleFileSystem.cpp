@@ -202,6 +202,72 @@ void TitleFileSystem::Undelete(const std::filesystem::path& relative)
     }
 }
 
+void TitleFileSystem::Hide(const std::filesystem::path& relative)
+{
+    if (!PathExists(m_titleRoot / relative))
+    {
+        return;
+    }
+    const auto key = Key(relative);
+    const std::scoped_lock lock(m_mutex);
+    if (m_deleted.insert(key).second)
+    {
+        SaveDeleted();
+    }
+}
+
+bool TitleFileSystem::InOverlay(const std::filesystem::path& relative) const
+{
+    return PathExists(m_overlayRoot / relative);
+}
+
+bool TitleFileSystem::IsEmptyDirectory(const std::filesystem::path& relative) const
+{
+    for (const auto& root : {m_overlayRoot, m_titleRoot})
+    {
+        std::error_code error;
+        for (std::filesystem::directory_iterator it(root / relative, error), end; !error && it != end;
+             it.increment(error))
+        {
+            const auto child = relative / it->path().filename();
+            if (!IsInternal(child) && !IsDeleted(child))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+std::error_code TitleFileSystem::RemoveEmptyDirectory(const std::filesystem::path& relative)
+{
+    const auto read = ReadPath(relative);
+    if (!read || !Exists(relative))
+    {
+        return std::make_error_code(std::errc::no_such_file_or_directory);
+    }
+    std::error_code error;
+    if (!std::filesystem::is_directory(*read, error))
+    {
+        return std::make_error_code(std::errc::not_a_directory);
+    }
+    if (!IsEmptyDirectory(relative))
+    {
+        return std::make_error_code(std::errc::directory_not_empty);
+    }
+    const auto overlay = m_overlayRoot / relative;
+    if (std::filesystem::is_directory(overlay, error))
+    {
+        std::filesystem::remove(overlay, error);
+        if (error)
+        {
+            return error;
+        }
+    }
+    Hide(relative);
+    return {};
+}
+
 bool TitleFileSystem::IsInternal(const std::filesystem::path& relative)
 {
     return Key(relative) == kDeletedFile;
