@@ -41,6 +41,20 @@ Name the project, link it, give its licence, and say whether code was used or on
 
 Ask before writing the code: in the issue, or on Discord. If you can't point to an allowed source for something, leave it out and record it as unknown instead, for example as a stub, which the unimplemented-call summary will report. A missing feature can be added later; tainted code has to be removed from the history.
 
+### Observing undocumented console interfaces
+
+Some console interfaces have no public documentation. The console Direct3D 12.x device is one (#27). OpenEra learns their shape only from how titles call them at run time:
+
+1. **Record.** OpenEra hands the title a *recording stand-in* object instead of an implementation. Every vtable slot records `object::slotNNN` in the unimplemented-call summary and fails cleanly. `QueryInterface` records the interface IDs asked for. See `src/Graphics/ConsoleDevice.cpp`.
+2. **Match.** Run a test application whose source you wrote yourself, so you know which method it calls at each step. Match the recorded slots to those calls.
+3. **Implement.** Only then make a slot do something, for example by forwarding it to the desktop interface's method, and say in the pull request which observation each mapping comes from.
+
+**Never:**
+- read a console SDK header, library or binary to find a layout;
+- copy a layout from someone else's reverse-engineered work.
+
+Function names a title imports, call orders and argument values are observed behaviour. Layouts read out of Microsoft's code are not.
+
 ## Setting up
 
 You need Windows 10 (22H2 or later) or Windows 11, x64, and:

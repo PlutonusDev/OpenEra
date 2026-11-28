@@ -12,10 +12,12 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
+#include "Core/Logger.h"
 #include "Graphics/AdapterSelection.h"
 #include "Graphics/DxgiFactory.h"
 #include "Graphics/GraphicsShims.h"
 #include "Kernel/ShimModule.h"
+#include "Kernel/StubRegistry.h"
 
 using namespace OpenEra::Graphics;
 using Microsoft::WRL::ComPtr;
@@ -143,4 +145,44 @@ TEST_CASE("D3D12CreateDevice without an adapter uses the preferred GPU", "[graph
         SKIP("the preferred adapter has no Direct3D 12 driver");
     }
     CHECK(std::bit_cast<uint64_t>(device->GetAdapterLuid()) == *expected);
+}
+
+TEST_CASE("The console device is a recording stand-in", "[graphics][console]")
+{
+    OpenEra::Core::Logger log;
+    OpenEra::Kernel::StubRegistry stubs(log);
+    ShimRegistry shims;
+    REQUIRE(RegisterGraphicsShims(shims, &stubs));
+    using CreateConsoleDevice = HRESULT WINAPI(IUnknown*, const void*, REFIID, void**);
+    auto* const create = Shim<CreateConsoleDevice>(shims, "d3d12_xs.dll", "D3D12XboxCreateDevice");
+    CHECK(Shim<CreateConsoleDevice>(shims, "d3d12_x.dll", "D3D12XboxCreateDevice") == create);
+
+    void* raw = nullptr;
+    REQUIRE(create(nullptr, nullptr, __uuidof(ID3D12Device), &raw) == S_OK);
+    REQUIRE(raw != nullptr);
+    auto* const device = static_cast<IUnknown*>(raw);
+
+    // Any other slot records itself and fails cleanly.
+    using Slot = HRESULT(STDMETHODCALLTYPE*)(void*, uint64_t, uint64_t, uint64_t);
+    const auto* const vtable = *static_cast<Slot* const*>(raw);
+    CHECK(vtable[8](raw, 1, 2, 3) == E_NOTIMPL);   // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    CHECK(vtable[8](raw, 0, 0, 0) == E_NOTIMPL);   // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    CHECK(vtable[255](raw, 0, 0, 0) == E_NOTIMPL); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    using OpenEra::Kernel::StubKind;
+    CHECK(stubs.GetHitCount(StubKind::Win32Import, "d3d12_xs.dll", "device::slot008") == 2);
+    CHECK(stubs.GetHitCount(StubKind::Win32Import, "d3d12_xs.dll", "device::slot255") == 1);
+    CHECK(stubs.GetHitCount(StubKind::Win32Import, "d3d12_xs.dll",
+                            "D3D12XboxCreateDevice {189819F1-1DB6-4B57-BE54-1821339B85F7}") == 1);
+
+    // COM identity and reference counting.
+    void* again = nullptr;
+    REQUIRE(device->QueryInterface(__uuidof(ID3D12Device), &again) == S_OK);
+    CHECK(again == raw);
+    CHECK(stubs.GetHitCount(StubKind::Win32Import, "d3d12_xs.dll",
+                            "device::QueryInterface {189819F1-1DB6-4B57-BE54-1821339B85F7}") == 1);
+    CHECK(device->QueryInterface(__uuidof(ID3D12Device), nullptr) == E_POINTER);
+    CHECK(device->AddRef() == 3);
+    CHECK(device->Release() == 2);
+    CHECK(device->Release() == 1);
+    CHECK(device->Release() == 0); // Freed.
 }

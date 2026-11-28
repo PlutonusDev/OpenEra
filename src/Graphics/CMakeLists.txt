@@ -4,7 +4,9 @@ add_library(OpenEraGraphics STATIC
     DxgiFactory.h
     DxgiFactory.cpp
     GraphicsShims.h
-    GraphicsShims.cpp)
+    GraphicsShims.cpp
+    ConsoleDevice.h
+    ConsoleDevice.cpp)
 add_library(OpenEra::Graphics ALIAS OpenEraGraphics)
 
 target_link_libraries(OpenEraGraphics
