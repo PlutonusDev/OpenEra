@@ -8,6 +8,7 @@
 #include <string_view>
 #include <thread>
 
+#include <Windows.h>
 #include <catch2/catch_test_macros.hpp>
 
 #include "Core/Logger.h"
@@ -59,6 +60,14 @@ public:
         const auto address = m_manager->FindExport(module, symbol);
         REQUIRE(address.has_value());
         return std::bit_cast<Function*>(address.value_or(0));
+    }
+
+    template <typename Function>
+    [[nodiscard]] Function* Shim(std::string_view name) const
+    {
+        const auto resolved = m_shims.Resolve("kernel32.dll", name);
+        REQUIRE(resolved.has_value());
+        return OpenEra::Kernel::FromShimProc<Function>(resolved->Export->Proc);
     }
 
     [[nodiscard]] ModuleManager& Manager() const noexcept { return *m_manager; }
@@ -147,4 +156,49 @@ TEST_CASE("Delay-loaded DLLs load on first use, through the image's own helper",
     // A missing DLL fails only its first call, with the helper's ERROR_MOD_NOT_FOUND exception.
     using MissingFunction = uint32_t();
     CHECK(fixture.Export<MissingFunction>(kDelayImage, "CallDelayMissing")() == 0xC06D'007EU);
+
+#if !defined(__clang__) // lld-link ignores /DELAY:UNLOAD, so its images have no unload table.
+    // Unloading it frees the DLL; the next call loads a fresh copy.
+    CHECK(fixture.Export<CountFunction>(kDelayImage, "UnloadDelayTarget")() == TRUE);
+    CHECK(fixture.Manager().Find(kTarget) == nullptr);
+    CHECK(fixture.Export<CountFunction>(kDelayImage, "CallDelayTarget")() == 42);
+    CHECK(fixture.Export<CountFunction>(kTarget, "DelayTargetAttaches")() == 1);
+#endif
+}
+
+TEST_CASE("FreeLibrary unloads a DLL once its references are gone", "[initializer][unload]")
+{
+    constexpr std::string_view kTarget = "DelayTargetImage.dll";
+    StartFixture fixture;
+    auto* const load = fixture.Shim<HMODULE(LPCWSTR)>("LoadLibraryW");
+    auto* const freeLibrary = fixture.Shim<BOOL(HMODULE)>("FreeLibrary");
+    auto* const handleEx = fixture.Shim<BOOL(DWORD, LPCWSTR, HMODULE*)>("GetModuleHandleExW");
+
+    auto* const module = load(L"DelayTargetImage.dll");
+    REQUIRE(module != nullptr);
+    HMODULE found = nullptr;
+    CHECK(handleEx(0, L"DelayTargetImage.dll", &found) == TRUE); // A second reference.
+    CHECK(found == module);
+    CHECK(handleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, L"delaytargetimage", &found) == TRUE);
+    auto* const value = fixture.Export<CountFunction>(kTarget, "DelayTargetValue");
+    const auto* const inside = std::bit_cast<LPCWSTR>(std::bit_cast<uintptr_t>(value));
+    found = nullptr;
+    CHECK(handleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, inside,
+                   &found) == TRUE);
+    CHECK(found == module);
+
+    CHECK(freeLibrary(module) == TRUE);
+    CHECK(fixture.Manager().Find(kTarget) != nullptr);
+    CHECK(freeLibrary(module) == TRUE);
+    CHECK(fixture.Manager().Find(kTarget) == nullptr);
+    CHECK(handleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, L"DelayTargetImage.dll", &found) == FALSE);
+    CHECK(found == nullptr);
+
+    // Pinned: never unloaded.
+    auto* const again = load(L"DelayTargetImage.dll");
+    REQUIRE(again != nullptr);
+    CHECK(fixture.Export<CountFunction>(kTarget, "DelayTargetAttaches")() == 1); // A fresh copy.
+    CHECK(handleEx(GET_MODULE_HANDLE_EX_FLAG_PIN, L"DelayTargetImage.dll", &found) == TRUE);
+    CHECK(freeLibrary(again) == TRUE);
+    CHECK(fixture.Manager().Find(kTarget) != nullptr);
 }

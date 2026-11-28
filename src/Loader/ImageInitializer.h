@@ -30,6 +30,8 @@ public:
 
     [[nodiscard]] bool Attach(const LoadedModule& module) override;
     void Detach(const LoadedModule& module) override;
+    // Waits out thread notifications still running in it, and frees its TLS slot.
+    void Unloading(const LoadedModule& module) noexcept override;
 
     // Runs an executable's entry point on a new thread with the stack its
     // headers ask for, and returns its exit code once it finishes.

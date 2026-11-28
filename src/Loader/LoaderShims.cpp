@@ -1,4 +1,4 @@
-// Runtime loader shims (LoadLibrary, GetModuleHandle, GetProcAddress,
+// Runtime loader shims (LoadLibrary, GetModuleHandle{,Ex}, GetProcAddress,
 // FreeLibrary) and the image-base lookups C++ exceptions need, resolved
 // through the active ModuleManager.
 #include <algorithm>
@@ -10,6 +10,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 
 #include <Windows.h>
 
@@ -205,9 +206,94 @@ FARPROC WINAPI GetProcAddressShim(HMODULE module, LPCSTR name) noexcept
                                       });
 }
 
-BOOL WINAPI FreeLibraryShim(HMODULE /*module*/) noexcept
+// Title modules are reference counted by the manager. Host and shim modules
+// stay loaded for the life of the process.
+BOOL WINAPI FreeLibraryShim(HMODULE module) noexcept
 {
-    return TRUE; // Title modules stay loaded for the life of the process.
+    return Kernel::GuardShim<BOOL>("FreeLibrary", FALSE, FALSE,
+                                   [module]
+                                   {
+                                       if (auto* manager = ModuleManager::Active())
+                                       {
+                                           std::ignore = manager->Release(std::bit_cast<uint64_t>(module));
+                                       }
+                                       return TRUE;
+                                   });
+}
+
+[[noreturn]] void WINAPI FreeLibraryAndExitThreadShim(HMODULE module, DWORD exitCode) noexcept
+{
+    FreeLibraryShim(module);
+    ExitThread(exitCode);
+}
+
+// GetModuleHandleEx for title modules (by name, or by an address inside one);
+// anything else goes to the host. `name` is the narrowed module name.
+BOOL ModuleHandleEx(DWORD flags, const void* address, const std::optional<std::string>& name, HMODULE* module,
+                    const auto& host)
+{
+    if (module == nullptr)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+    *module = nullptr;
+    auto* manager = ModuleManager::Active();
+    if (manager == nullptr)
+    {
+        return host();
+    }
+    uint64_t handle = 0;
+    if ((flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS) != 0)
+    {
+        handle = manager->ImageBaseFor(std::bit_cast<uint64_t>(address));
+    }
+    else
+    {
+        handle = name ? manager->HandleOf(*name) : manager->MainModuleHandle();
+    }
+    if (handle == 0 || manager->FindByHandle(handle) == nullptr)
+    {
+        if (handle != 0)
+        {
+            *module = std::bit_cast<HMODULE>(handle); // A shim or host module, never unloaded.
+            return TRUE;
+        }
+        return host();
+    }
+    if ((flags & GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT) == 0 || (flags & GET_MODULE_HANDLE_EX_FLAG_PIN) != 0)
+    {
+        manager->AddReference(handle, (flags & GET_MODULE_HANDLE_EX_FLAG_PIN) != 0);
+    }
+    *module = std::bit_cast<HMODULE>(handle);
+    return TRUE;
+}
+
+BOOL WINAPI GetModuleHandleExWShim(DWORD flags, LPCWSTR name, HMODULE* module) noexcept
+{
+    return Kernel::GuardShim<BOOL>("GetModuleHandleExW", FALSE, FALSE,
+                                   [=]
+                                   {
+                                       const bool byAddress = (flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS) != 0;
+                                       const auto narrow =
+                                           byAddress || name == nullptr ? std::nullopt : std::optional(Narrow(name));
+                                       return ModuleHandleEx(flags, name, narrow, module, [=]() noexcept
+                                                             { return GetModuleHandleExW(flags, name, module); });
+                                   });
+}
+
+BOOL WINAPI GetModuleHandleExAShim(DWORD flags, LPCSTR name, HMODULE* module) noexcept
+{
+    return Kernel::GuardShim<BOOL>("GetModuleHandleExA", FALSE, FALSE,
+                                   [=]
+                                   {
+                                       const bool byAddress = (flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS) != 0;
+                                       const auto text = byAddress || name == nullptr
+                                                             ? std::nullopt
+                                                             : std::optional<std::string>(name);
+                                       return ModuleHandleEx(flags, name, text, module, [=]() noexcept
+                                                             { return GetModuleHandleExA(flags, name, module); });
+                                   });
 }
 
 // The OS only knows images its own loader mapped, so title modules are looked up first.
@@ -273,20 +359,23 @@ bool RegisterLoaderShims(Kernel::ShimRegistry& shims)
     {
         kernel.AddAlias(alias);
     }
-    const bool exported = kernel.Export("LoadLibraryExW", Kernel::ToShimProc(&LoadLibraryExWShim)) &&
-                          kernel.Export("LoadLibraryW", Kernel::ToShimProc(&LoadLibraryWShim)) &&
-                          kernel.Export("LoadLibraryExA", Kernel::ToShimProc(&LoadLibraryExAShim)) &&
-                          kernel.Export("LoadLibraryA", Kernel::ToShimProc(&LoadLibraryAShim)) &&
-                          kernel.Export("GetModuleHandleW", Kernel::ToShimProc(&GetModuleHandleWShim)) &&
-                          kernel.Export("GetModuleHandleA", Kernel::ToShimProc(&GetModuleHandleAShim)) &&
-                          kernel.Export("GetModuleFileNameW", Kernel::ToShimProc(&GetModuleFileNameWShim)) &&
-                          kernel.Export("GetModuleFileNameA", Kernel::ToShimProc(&GetModuleFileNameAShim)) &&
-                          kernel.Export("GetProcAddress", Kernel::ToShimProc(&GetProcAddressShim)) &&
-                          kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
-                          kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
-                          Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) &&
-                          Kernel::AddDebugOutputExports(kernel) && Kernel::AddThreadExports(kernel) &&
-                          Kernel::AddProcessExports(kernel) && Kernel::AddExitExports(kernel);
+    const bool exported =
+        kernel.Export("LoadLibraryExW", Kernel::ToShimProc(&LoadLibraryExWShim)) &&
+        kernel.Export("LoadLibraryW", Kernel::ToShimProc(&LoadLibraryWShim)) &&
+        kernel.Export("LoadLibraryExA", Kernel::ToShimProc(&LoadLibraryExAShim)) &&
+        kernel.Export("LoadLibraryA", Kernel::ToShimProc(&LoadLibraryAShim)) &&
+        kernel.Export("GetModuleHandleW", Kernel::ToShimProc(&GetModuleHandleWShim)) &&
+        kernel.Export("GetModuleHandleA", Kernel::ToShimProc(&GetModuleHandleAShim)) &&
+        kernel.Export("GetModuleFileNameW", Kernel::ToShimProc(&GetModuleFileNameWShim)) &&
+        kernel.Export("GetModuleFileNameA", Kernel::ToShimProc(&GetModuleFileNameAShim)) &&
+        kernel.Export("GetProcAddress", Kernel::ToShimProc(&GetProcAddressShim)) &&
+        kernel.Export("FreeLibrary", Kernel::ToShimProc(&FreeLibraryShim)) &&
+        kernel.Export("FreeLibraryAndExitThread", Kernel::ToShimProc(&FreeLibraryAndExitThreadShim)) &&
+        kernel.Export("GetModuleHandleExW", Kernel::ToShimProc(&GetModuleHandleExWShim)) &&
+        kernel.Export("GetModuleHandleExA", Kernel::ToShimProc(&GetModuleHandleExAShim)) &&
+        kernel.Export("RtlPcToFileHeader", Kernel::ToShimProc(&RtlPcToFileHeaderShim)) &&
+        Kernel::AddFileExports(kernel) && Kernel::AddMemoryExports(kernel) && Kernel::AddDebugOutputExports(kernel) &&
+        Kernel::AddThreadExports(kernel) && Kernel::AddProcessExports(kernel) && Kernel::AddExitExports(kernel);
 
     Kernel::ShimModule ntdll("ntdll.dll", Kernel::StubKind::Win32Import);
     ntdll.AddAlias("api-ms-win-core-rtlsupport-l1-1-0.dll");

@@ -10,6 +10,7 @@
 #include <functional>
 #include <iterator>
 #include <mutex>
+#include <shared_mutex>
 #include <span>
 #include <string>
 #include <system_error>
@@ -20,6 +21,7 @@
 #include <vector>
 
 #include <Windows.h>
+#include <tlhelp32.h>
 
 #include "Core/Logger.h"
 #include "Kernel/ExitShims.h"
@@ -59,7 +61,37 @@ struct Slot
 {
     Library Module;
     std::filesystem::path File;
+    const LoadedModule* Owner = nullptr; // Null for the notifier.
 };
+
+// Ids of this process's threads that are still running.
+std::unordered_set<DWORD> RunningProcessThreads()
+{
+    std::unordered_set<DWORD> threads;
+    auto* const raw = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (raw == INVALID_HANDLE_VALUE)
+    {
+        return threads;
+    }
+    const Handle snapshot(raw);
+    const DWORD process = GetCurrentProcessId();
+    THREADENTRY32 entry{};
+    entry.dwSize = sizeof(entry);
+    for (BOOL more = Thread32First(snapshot.get(), &entry); more != FALSE; more = Thread32Next(snapshot.get(), &entry))
+    {
+        if (entry.th32OwnerProcessID != process)
+        {
+            continue;
+        }
+        const Handle thread(OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ThreadID));
+        DWORD exitCode = 0;
+        if (thread && GetExitCodeThread(thread.get(), &exitCode) != FALSE && exitCode == STILL_ACTIVE)
+        {
+            threads.insert(entry.th32ThreadID);
+        }
+    }
+    return threads;
+}
 
 uint32_t LowDword(uint64_t value) noexcept
 {
@@ -170,7 +202,10 @@ struct ImageInitializer::State
     // since thread notifications arrive under the OS loader lock.
     std::mutex Mutex;
     std::vector<std::reference_wrapper<const LoadedModule>> Attached; // Thread notifications, in attach order.
-    std::unordered_set<DWORD> LiveThreads; // Threads started since the first attach, still running.
+    // Held shared while notifications run, so an unloaded module waits them out.
+    std::shared_mutex Notifying;
+    std::unordered_set<DWORD> LiveThreads;     // Threads started since the first attach, still running.
+    std::unordered_set<DWORD> BaselineThreads; // Threads running before the first attach.
     bool KeepSlotsLoaded = false;
 
     State(std::filesystem::path slotSource, std::filesystem::path workDirectory, Logger& log)
@@ -195,6 +230,7 @@ struct ImageInitializer::State
             {
                 return;
             }
+            const std::shared_lock notifying(state->Notifying);
             std::vector<std::reference_wrapper<const LoadedModule>> modules;
             {
                 const std::scoped_lock lock(state->Mutex);
@@ -321,6 +357,7 @@ struct ImageInitializer::State
             Log.get().Warn("Modules: {} has no thread notification export", SlotSource.string());
             return false;
         }
+        BaselineThreads = RunningProcessThreads();
         Active().store(this);
         std::bit_cast<SetNotifyFunction*>(std::bit_cast<uintptr_t>(proc))(&OnThread);
         NotifierLoaded = true;
@@ -349,6 +386,7 @@ struct ImageInitializer::State
             log.Warn("Modules: setting up TLS for {} failed", module.Name);
             return false;
         }
+        Slots.back().Owner = &module;
         log.Info("Modules: {} uses TLS index {}", module.Name, *index);
         return true;
     }
@@ -413,6 +451,23 @@ void ImageInitializer::Detach(const LoadedModule& module)
     RunTlsCallbacks(module, DLL_PROCESS_DETACH);
 }
 
+void ImageInitializer::Unloading(const LoadedModule& module) noexcept
+{
+    auto& state = *m_state;
+    // Detach already removed it, so only notifications already running can still reach it.
+    state.Notifying.lock();
+    state.Notifying.unlock();
+    const auto slot =
+        std::ranges::find_if(state.Slots, [&module](const Slot& entry) noexcept { return entry.Owner == &module; });
+    if (slot != state.Slots.end())
+    {
+        slot->Module.reset();
+        std::error_code error;
+        std::filesystem::remove(slot->File, error);
+        state.Slots.erase(slot);
+    }
+}
+
 std::optional<uint32_t> ImageInitializer::RunEntryPoint(const LoadedModule& module)
 {
     auto& log = m_state->Log.get();
@@ -460,14 +515,15 @@ std::optional<uint32_t> ImageInitializer::RunEntryPoint(const LoadedModule& modu
 
 size_t ImageInitializer::RunningThreadCount() const
 {
-    const std::scoped_lock lock(m_state->Mutex);
-    const DWORD self = GetCurrentThreadId();
-    size_t running = 0;
-    for (const DWORD id : m_state->LiveThreads)
+    // A snapshot too: a thread just created may not have sent its attach notification yet.
+    auto running = RunningProcessThreads();
+    std::erase_if(running, [this](DWORD id) { return m_state->BaselineThreads.contains(id); });
     {
-        running += id != self ? 1 : 0;
+        const std::scoped_lock lock(m_state->Mutex);
+        running.insert(m_state->LiveThreads.begin(), m_state->LiveThreads.end());
     }
-    return running;
+    running.erase(GetCurrentThreadId());
+    return running.size();
 }
 
 void ImageInitializer::KeepLoaded() noexcept
