@@ -206,6 +206,9 @@ TEST_CASE("Stubs for COM and Gaming Runtime modules report failure, not success"
     CHECK(StubReturnValue(StubKind::Win32Import, "d3d12.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::Win32Import, "xaudio2_9.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::Win32Import, "dstorage") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "d3d12_xs.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "XCRDAPI.dll") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "xmem.dll") == 0); // Allocators return pointers: null, not E_NOTIMPL.
     CHECK(StubReturnValue(StubKind::Win32Import, "user32.dll") == 0);
     CHECK(StubReturnValue(StubKind::GameCoreApi, "xgameruntime.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::NtSyscall, "dxgi.dll") == 0xC0000002U);
