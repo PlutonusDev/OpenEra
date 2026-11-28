@@ -3,7 +3,13 @@
   "consoleModules": {
     "xboxkrnl": "Kernel",
     "xmem": "Memory",
-    "d3d12_x": "Direct3D 12.x"
+    "d3d12_x": "Direct3D 12.x",
+    "d3d12_xs": "Direct3D 12.x",
+    "xg_xs": "Direct3D 12.x",
+    "acphal": "Audio",
+    "xcrdapi": "Storage",
+    "xfrontpaneldisplay": "System",
+    "pixevt": "Diagnostics"
   },
   "categories": []
 }

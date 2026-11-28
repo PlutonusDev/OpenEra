@@ -286,8 +286,8 @@ StubKind StubKindForModule(std::string_view module)
 uint64_t StubReturnValue(StubKind kind, std::string_view module)
 {
     // COM and DirectX entry points report failure through an HRESULT, so 0 would read as success.
-    static const std::array<std::string_view, 7> kHResultModules = {"d3d12",     "d3d12_x",   "dxgi",    "dstorage",
-                                                                    "xaudio2_8", "xaudio2_9", "xapobase"};
+    static const std::array<std::string_view, 9> kHResultModules = {
+        "d3d12", "d3d12_x", "d3d12_xs", "dxgi", "dstorage", "xcrdapi", "xaudio2_8", "xaudio2_9", "xapobase"};
     if (kind == StubKind::Win32Import && std::ranges::find(kHResultModules, ModuleKey(module)) != kHResultModules.end())
     {
         return DefaultStubReturnValue(StubKind::GameCoreApi);
