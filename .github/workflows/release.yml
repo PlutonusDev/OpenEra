@@ -1,10 +1,25 @@
 name: Release
 
-# Builds, tests and publishes a GitHub release when a pull request is merged
-# into the release branch. Direct pushes to it don't release.
+# Builds, tests and publishes a GitHub release from the release branch, when a
+# pull request is merged into it or when run by hand. Direct pushes don't release.
+#
+# Version: the one given when run by hand; else CMakeLists.txt's project VERSION
+# if it's newer than the last release; else the last release bumped by the
+# merged pull request's "release: major" / "release: minor" label (patch otherwise).
 on:
   push:
     branches: [release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version (for example 0.2.0). Leave empty to work it out.
+        required: false
+        default: ''
+      bump:
+        description: Part to increment when no version is given and CMakeLists.txt isn't newer.
+        type: choice
+        options: [patch, minor, major]
+        default: patch
 
 permissions:
   contents: read
@@ -15,58 +30,103 @@ concurrency:
 
 jobs:
   check:
-    name: Merged pull request and new version
+    name: Release trigger and version
     runs-on: ubuntu-latest
     outputs:
-      merged: ${{ steps.merge.outputs.merged }}
+      release: ${{ steps.trigger.outputs.release }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      previous: ${{ steps.version.outputs.previous }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pushed commit comes from a merged pull request
-        id: merge
+      - name: Run by hand on release, or a merged pull request into release
+        id: trigger
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $count = gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" `
-              --jq '[.[] | select(.merged_at != null and .base.ref == "release")] | length'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $merged = [int]$count -gt 0
-          if (-not $merged) { '::notice::Not a merged pull request into release; nothing to release.' }
-          "merged=$($merged.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          $bump = ''
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch')
+          {
+              if ('${{ github.ref }}' -ne 'refs/heads/release')
+              {
+                  Write-Error 'Run this workflow on the release branch.'
+                  exit 1
+              }
+              $release = $true
+          }
+          else
+          {
+              $pulls = gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" |
+                  ConvertFrom-Json | Where-Object { $_.merged_at -and $_.base.ref -eq 'release' }
+              $release = @($pulls).Count -gt 0
+              $labels = @($pulls | ForEach-Object { $_.labels.name })
+              $bump = if ($labels -contains 'release: major') { 'major' }
+                      elseif ($labels -contains 'release: minor') { 'minor' }
+                      else { 'patch' }
+              if (-not $release) { '::notice::Not a merged pull request into release; nothing to release.' }
+          }
+          "release=$($release.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "bump=$bump" >> $env:GITHUB_OUTPUT
 
-      - name: Version from CMakeLists.txt
+      - name: Work out the version
         id: version
-        if: steps.merge.outputs.merged == 'true'
+        if: steps.trigger.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.version }}
+          BUMP: ${{ inputs.bump || steps.trigger.outputs.bump }}
         shell: pwsh
         run: |
+          $semver = '^(\d+)\.(\d+)\.(\d+)$'
+          $tags = gh api "repos/${{ github.repository }}/git/matching-refs/tags/v" --paginate --jq '.[].ref' |
+              ForEach-Object { $_ -replace '^refs/tags/v', '' } | Where-Object { $_ -match $semver }
+          $last = $tags | Sort-Object { [version]$_ } | Select-Object -Last 1
+
           $cmake = Get-Content CMakeLists.txt -Raw
-          if ($cmake -notmatch 'project\(OpenEra\s+VERSION\s+(\d+)\.(\d+)\.(\d+)')
+          if ($cmake -notmatch 'project\(OpenEra\s+VERSION\s+(\d+\.\d+\.\d+)')
           {
               Write-Error 'No project VERSION found in CMakeLists.txt.'
               exit 1
           }
-          $version = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
-          $tag = "v$version"
-          gh api "repos/${{ github.repository }}/git/ref/tags/$tag" --silent 2>$null
-          if ($LASTEXITCODE -eq 0)
+          $declared = $Matches[1]
+
+          if ($env:REQUESTED)
           {
-              Write-Error "$tag is already released. Bump the project VERSION in CMakeLists.txt."
+              $version = $env:REQUESTED.TrimStart('v')
+              if ($version -notmatch $semver) { Write-Error "$env:REQUESTED isn't a MAJOR.MINOR.PATCH version."; exit 1 }
+          }
+          elseif (-not $last -or [version]$declared -gt [version]$last)
+          {
+              $version = $declared
+          }
+          else
+          {
+              $parts = ([version]$last)
+              $version = switch ($env:BUMP)
+              {
+                  'major' { "$($parts.Major + 1).0.0" }
+                  'minor' { "$($parts.Major).$($parts.Minor + 1).0" }
+                  default { "$($parts.Major).$($parts.Minor).$($parts.Build + 1)" }
+              }
+          }
+          if ($last -and [version]$version -le [version]$last)
+          {
+              Write-Error "v$version isn't newer than the last release, v$last."
               exit 1
           }
+          "Releasing v$version (last release: $(if ($last) { "v$last" } else { 'none' }))"
           "version=$version" >> $env:GITHUB_OUTPUT
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "prerelease=$(($Matches[1] -eq '0').ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          "previous=$(if ($last) { "v$last" })" >> $env:GITHUB_OUTPUT
+          "prerelease=$(([version]$version).Major -eq 0 ? 'true' : 'false')" >> $env:GITHUB_OUTPUT
 
   test:
     name: Build and test (${{ matrix.name }})
     needs: check
-    if: needs.check.outputs.merged == 'true'
+    if: needs.check.outputs.release == 'true'
     runs-on: windows-latest
     strategy:
       fail-fast: true
@@ -84,7 +144,8 @@ jobs:
         run: |
           . .github/scripts/Enter-VsDevShell.ps1
           $compiler = if ('${{ matrix.compiler }}' -eq 'clang-cl') { $VsClangCl } else { 'cl' }
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=$compiler"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=$compiler" `
+              "-DOPENERA_VERSION=${{ needs.check.outputs.version }}"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build
@@ -106,8 +167,10 @@ jobs:
     permissions:
       contents: write
     env:
+      GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.check.outputs.version }}
       TAG: ${{ needs.check.outputs.tag }}
+      PREVIOUS: ${{ needs.check.outputs.previous }}
     steps:
       - uses: actions/checkout@v4
 
@@ -115,9 +178,36 @@ jobs:
         shell: pwsh
         run: |
           . .github/scripts/Enter-VsDevShell.ps1
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DOPENERA_BUILD_TESTS=OFF "-DOPENERA_VERSION=$env:VERSION"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $reported = & build/src/App/openera.exe --version
+          if ($reported -ne "openera $env:VERSION") { Write-Error "openera reports '$reported'"; exit 1 }
+
+      # Pull requests since the last release, grouped by label (.github/release.yml).
+      - name: Changelog
+        shell: pwsh
+        run: |
+          $request = @('-f', "tag_name=$env:TAG", '-f', "target_commitish=${{ github.sha }}")
+          if ($env:PREVIOUS) { $request += @('-f', "previous_tag_name=$env:PREVIOUS") }
+          $notes = gh api "repos/${{ github.repository }}/releases/generate-notes" @request --jq '.body'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          $intro = 'Windows x64 build of the openera launcher. Needs the Microsoft Visual C++ Redistributable (x64).'
+          ($intro, '', ($notes -join "`n")) -join "`n" | Set-Content -Encoding utf8NoBOM release-notes.md
+
+          # The cumulative changelog: this release, then every earlier one, newest first.
+          $sections = @("## OpenEra $env:VERSION ($date)", '', ($notes -join "`n"))
+          $earlier = gh api "repos/${{ github.repository }}/releases" --paginate |
+              ConvertFrom-Json | Where-Object { -not $_.draft } | Sort-Object { [datetime]$_.published_at } -Descending
+          foreach ($release in $earlier)
+          {
+              $published = ([datetime]$release.published_at).ToString('yyyy-MM-dd')
+              $sections += @('', "## OpenEra $($release.tag_name.TrimStart('v')) ($published)", '', $release.body)
+          }
+          (@('# Changelog', '') + $sections) -join "`n" | Set-Content -Encoding utf8NoBOM CHANGELOG.md
+          Get-Content release-notes.md
 
       - name: Package
         id: package
@@ -127,7 +217,7 @@ jobs:
           $stage = Join-Path $env:RUNNER_TEMP $name
           New-Item -ItemType Directory -Force $stage | Out-Null
           foreach ($file in 'build/src/App/openera.exe', 'build/src/App/OpenEraTlsSlot.dll',
-                            'README.md', 'COMPATIBILITY.md', 'LICENSE')
+                            'README.md', 'COMPATIBILITY.md', 'CHANGELOG.md', 'LICENSE')
           {
               if (-not (Test-Path $file)) { Write-Error "Missing $file"; exit 1 }
               Copy-Item $file $stage
@@ -139,14 +229,11 @@ jobs:
           "zip=$zip" >> $env:GITHUB_OUTPUT
 
       - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $zip = '${{ steps.package.outputs.zip }}'
-          $notes = 'Windows x64 build of the openera launcher. Needs the Microsoft Visual C++ Redistributable (x64).'
-          $arguments = @($env:TAG, $zip, "$zip.sha256", '--target', '${{ github.sha }}',
-                         '--title', "OpenEra $env:VERSION", '--notes', $notes, '--generate-notes')
+          $arguments = @($env:TAG, $zip, "$zip.sha256", 'CHANGELOG.md', '--target', '${{ github.sha }}',
+                         '--title', "OpenEra $env:VERSION", '--notes-file', 'release-notes.md')
           if ('${{ needs.check.outputs.prerelease }}' -eq 'true') { $arguments += '--prerelease' }
           gh release create @arguments
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

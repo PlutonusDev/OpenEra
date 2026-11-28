@@ -304,3 +304,12 @@ TEST_CASE("A C runtime title's exit runs its atexit handlers and openera exits c
     CHECK(run.Output.find("atexit handler ran") != std::string::npos);
     CHECK(run.Output.find("Stub summary") != std::string::npos);
 }
+
+TEST_CASE("openera reports its version", "[launcher]")
+{
+    const auto run = RunLauncher(L"--version");
+    INFO(run.Output);
+    CHECK(run.ExitCode == 0);
+    CHECK(run.Output.starts_with("openera "));
+    CHECK(run.Output.find("-dev") != std::string::npos); // Local builds; releases pass their version.
+}
