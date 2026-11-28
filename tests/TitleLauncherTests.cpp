@@ -310,6 +310,7 @@ TEST_CASE("openera reports its version", "[launcher]")
     const auto run = RunLauncher(L"--version");
     INFO(run.Output);
     CHECK(run.ExitCode == 0);
-    CHECK(run.Output.starts_with("openera "));
-    CHECK(run.Output.find("-dev") != std::string::npos); // Local builds; releases pass their version.
+    // The version the build was configured with: <CMake version>-dev locally, the released one in releases.
+    const auto end = run.Output.find_last_not_of("\r\n");
+    CHECK(run.Output.substr(0, end + 1) == std::string("openera ") + OPENERA_EXPECTED_VERSION);
 }
