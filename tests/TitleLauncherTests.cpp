@@ -290,3 +290,17 @@ TEST_CASE("openera logs its summary and exits with the title's code", "[launcher
     CHECK(lingering.Output.find("still running") != std::string::npos);
     CHECK(lingering.Output.find("Stub summary") != std::string::npos);
 }
+
+TEST_CASE("A C runtime title's exit runs its atexit handlers and openera exits cleanly", "[launcher][exit]")
+{
+    const TitleFolder folder("LauncherCrtExit");
+    folder.WriteConfig("CrtExitImage.exe");
+    folder.AddImage("CrtExitImage.exe", {});
+    const auto run =
+        RunLauncher(L"run \"" + folder.Path().wstring() + L"\" --set log.debugger=false --set \"files.overlay='" +
+                    folder.Overlay().wstring() + L"'\"");
+    INFO(run.Output);
+    CHECK(run.ExitCode == 3); // Not a crash once the title's image is gone.
+    CHECK(run.Output.find("atexit handler ran") != std::string::npos);
+    CHECK(run.Output.find("Stub summary") != std::string::npos);
+}
