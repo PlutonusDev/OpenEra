@@ -130,7 +130,8 @@
             "CreateDirectoryW": "implemented",
             "DeleteFileW": "implemented",
             "CreateFile2": "implemented",
-            "CreateFileMappingFromApp": "implemented"
+            "CreateFileMappingFromApp": "implemented",
+            "FlushViewOfFile": "implemented"
           }
         },
         {
@@ -146,7 +147,8 @@
             "VirtualAlloc2": "implemented",
             "MapViewOfFile3": "implemented",
             "GlobalMemoryStatusEx": "implemented",
-            "K32GetProcessMemoryInfo": "implemented"
+            "K32GetProcessMemoryInfo": "implemented",
+            "GetLargePageMinimum": "implemented"
           }
         },
         {
@@ -167,7 +169,8 @@
             "TlsFree": "implemented",
             "GetThreadDescription": "implemented",
             "SetThreadIdealProcessorEx": "implemented",
-            "GetCurrentThreadStackLimits": "implemented"
+            "GetCurrentThreadStackLimits": "implemented",
+            "QueryThreadCycleTime": "implemented"
           }
         },
         {
