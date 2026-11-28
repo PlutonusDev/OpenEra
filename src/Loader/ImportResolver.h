@@ -29,10 +29,12 @@ namespace OpenEra::Loader
 // Runtime modules, Win32Import otherwise.
 [[nodiscard]] Kernel::StubKind StubKindForModule(std::string_view module);
 
-// Value an unresolved import from `module` returns: DefaultStubReturnValue,
-// except E_NOTIMPL for Win32 imports from COM / DirectX modules (d3d12 and its
-// console variants, dxgi, XAudio2, DirectStorage), where 0 would mean S_OK.
-[[nodiscard]] uint64_t StubReturnValue(Kernel::StubKind kind, std::string_view module);
+// Value an unresolved import `symbol` from `module` returns: DefaultStubReturnValue,
+// except E_NOTIMPL for Win32 imports from COM / DirectX and console HAL modules
+// (d3d12 and its console variants, dxgi, XAudio2, DirectStorage, AcpHal), where
+// 0 would mean S_OK. Their "Is..." queries (for example ApuIsVirtualAddressValid)
+// keep 0, false.
+[[nodiscard]] uint64_t StubReturnValue(Kernel::StubKind kind, std::string_view module, std::string_view symbol = {});
 
 // Where an import was bound, in resolution order.
 enum class ImportSource : uint8_t
