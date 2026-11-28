@@ -11,5 +11,98 @@
     "xfrontpaneldisplay": "System",
     "pixevt": "Diagnostics"
   },
-  "categories": []
+  "categories": [
+    {
+      "name": "Direct3D 12.x",
+      "modules": [
+        {
+          "name": "d3d12_xs",
+          "functions": {
+            "D3D12XboxCreateDevice": "missing"
+          },
+          "sources": {
+            "D3D12XboxCreateDevice": ["#104"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Memory",
+      "modules": [
+        {
+          "name": "xmem",
+          "functions": {
+            "XMemAlloc": "missing",
+            "XMemMakeTag": "missing",
+            "XMemVirtualAlloc": "missing",
+            "XMemGetPhysicalMemoryLayout": "missing",
+            "XMemAllocatePhysicalPages": "missing",
+            "XMemGetWorkingSetStatistics": "missing",
+            "XMemCreateWin32Heap": "missing"
+          },
+          "sources": {
+            "XMemAlloc": ["#104"],
+            "XMemMakeTag": ["#104"],
+            "XMemVirtualAlloc": ["#104"],
+            "XMemGetPhysicalMemoryLayout": ["#104"],
+            "XMemAllocatePhysicalPages": ["#104"],
+            "XMemGetWorkingSetStatistics": ["#104"],
+            "XMemCreateWin32Heap": ["#104"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audio",
+      "modules": [
+        {
+          "name": "AcpHal",
+          "functions": {
+            "ApuCreateHeap": "missing",
+            "ApuHeapGetState": "missing",
+            "ApuAlloc": "missing",
+            "ApuMapVirtualAddress": "missing",
+            "ApuMapApuAddress": "missing",
+            "ApuIsVirtualAddressValid": "missing"
+          },
+          "sources": {
+            "ApuCreateHeap": ["#104"],
+            "ApuHeapGetState": ["#104"],
+            "ApuAlloc": ["#104"],
+            "ApuMapVirtualAddress": ["#104"],
+            "ApuMapApuAddress": ["#104"],
+            "ApuIsVirtualAddressValid": ["#104"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "modules": [
+        {
+          "name": "XCRDAPI",
+          "functions": {
+            "DStorageGetFactory": "missing"
+          },
+          "sources": {
+            "DStorageGetFactory": ["#104"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "modules": [
+        {
+          "name": "XFrontPanelDisplay",
+          "functions": {
+            "XFrontPanelIsSupported": "missing"
+          },
+          "sources": {
+            "XFrontPanelIsSupported": ["#104"]
+          }
+        }
+      ]
+    }
+  ]
 }
