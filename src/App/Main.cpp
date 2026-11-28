@@ -52,11 +52,17 @@ constexpr int kExitConfig = 4; // MicrosoftGame.config missing or unusable, or n
 constexpr int kExitLoad = 5;   // Loading or linking failed.
 constexpr int kExitStart = 6;  // Start-up or the entry point failed.
 
+#ifndef OPENERA_VERSION_STRING
+#    define OPENERA_VERSION_STRING "unknown" // NOLINT(cppcoreguidelines-macro-usage): set by the build.
+#endif
+constexpr std::string_view kVersion = OPENERA_VERSION_STRING;
+
 constexpr std::string_view kUsage = R"(Usage:
   openera run <title folder> [options] [-- <title arguments>]
                                          Load and start a title
   openera info <title folder>            Show what MicrosoftGame.config describes
   openera config [<title folder>]        List every setting, its value and where it came from
+  openera --version                      Show the version
 
 The title folder is an unpacked title: the folder containing MicrosoftGame.config.
 
@@ -361,6 +367,11 @@ int wmain(int argc, wchar_t** argv)
         if (!arguments.empty() && (arguments.front() == L"--help" || arguments.front() == L"-h"))
         {
             std::cout << kUsage;
+            return kExitSuccess;
+        }
+        if (!arguments.empty() && arguments.front() == L"--version")
+        {
+            std::cout << "openera " << kVersion << '\n';
             return kExitSuccess;
         }
         const auto line = ParseCommandLine(arguments);

@@ -24,5 +24,6 @@ target_link_libraries(openera PRIVATE
     OpenEra::App
     OpenEra::CompileOptions
     OpenEra::CoreCheck)
+target_compile_definitions(openera PRIVATE "OPENERA_VERSION_STRING=\"${OPENERA_VERSION}\"")
 add_custom_command(TARGET openera POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:OpenEraTlsSlot> $<TARGET_FILE_DIR:openera>)

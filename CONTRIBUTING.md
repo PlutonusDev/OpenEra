@@ -160,13 +160,22 @@ New parsers and binary structures need unit tests. Shims should be tested the wa
 
 ## Releases
 
-Releases come from the `release` branch. Merging a pull request into it runs [the release workflow](.github/workflows/release.yml):
+Releases come from the `release` branch. [The release workflow](.github/workflows/release.yml) runs when a pull request is merged into it (usually `main` into `release`), or by hand: Actions → Release → Run workflow, on the `release` branch. Pushing directly to `release` doesn't publish anything.
 
-1. It builds and tests a Release configuration with MSVC and Clang-CL.
-2. It packages `openera.exe` and `OpenEraTlsSlot.dll` as `OpenEra-<version>-win-x64.zip`, with a SHA-256 checksum.
-3. It publishes them as a GitHub release tagged `v<version>`, with generated notes. 0.x versions are marked as pre-releases.
+1. It works out the version (below).
+2. It builds and tests a Release configuration with MSVC and Clang-CL.
+3. It packages `openera.exe`, `OpenEraTlsSlot.dll` and the changelog as `OpenEra-<version>-win-x64.zip`, with a SHA-256 checksum.
+4. It publishes them as a GitHub release tagged `v<version>`. 0.x versions are marked as pre-releases.
 
-The version is the `project(OpenEra VERSION ...)` in `CMakeLists.txt`, so bump it in the pull request. A version that's already released fails the workflow. Pushing directly to `release` doesn't publish anything.
+**Version**, the first rule that applies:
+
+- **Run by hand with a version:** that exact version.
+- **`CMakeLists.txt` is ahead:** its `project(OpenEra VERSION ...)`, if that's newer than the last release. Raise it in a pull request to choose the next version.
+- **Otherwise:** the last release with its patch number incremented. Label the release pull request `release: minor` or `release: major` (or pick the part when running by hand) to increment that part instead.
+
+A version that isn't newer than the last release fails the workflow. `openera --version` reports the version a build was made as; local builds report `<CMake version>-dev`.
+
+**Changelog:** each release lists the pull requests merged since the previous one, grouped by label (see [`.github/release.yml`](.github/release.yml)): `release: major` under breaking changes, then `enhancement`, `bug`, `compatibility`, `documentation`, and everything else. Pull request titles become the entries, so write them for readers. Label a pull request `skip-changelog` to leave it out. The zip and the release also include `CHANGELOG.md`, every release so far, newest first.
 
 ## Compatibility reports
 

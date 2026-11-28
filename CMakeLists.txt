@@ -15,6 +15,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(OPENERA_BUILD_TESTS "Build the OpenEra unit tests" ON)
+# What openera --version reports. Release builds pass the released version.
+set(OPENERA_VERSION "${PROJECT_VERSION}-dev" CACHE STRING "Version string openera reports")
 option(OPENERA_ENABLE_CORE_CHECK "Run C++ Core Check (/analyze) on project sources (MSVC only)" ON)
 
 # ---------------------------------------------------------------------------
