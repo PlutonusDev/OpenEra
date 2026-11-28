@@ -4,6 +4,9 @@
 
 **An open-source compatibility layer for running Xbox Series X|S titles natively on Windows.**
 
+[![Download the latest release](https://img.shields.io/badge/Download-Latest%20release-2EA44F?style=for-the-badge&logo=github&logoColor=white)](https://github.com/PlutonusDev/OpenEra/releases/latest)
+
+[![Latest version](https://img.shields.io/github/v/release/PlutonusDev/OpenEra?include_prereleases&sort=semver&style=for-the-badge&label=Version)](https://github.com/PlutonusDev/OpenEra/releases)
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/openera)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](LICENSE)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white)

@@ -30,8 +30,8 @@ namespace OpenEra::Loader
 [[nodiscard]] Kernel::StubKind StubKindForModule(std::string_view module);
 
 // Value an unresolved import from `module` returns: DefaultStubReturnValue,
-// except E_NOTIMPL for Win32 imports from COM / DirectX modules (d3d12, dxgi,
-// XAudio2, DirectStorage), where 0 would mean S_OK.
+// except E_NOTIMPL for Win32 imports from COM / DirectX modules (d3d12 and its
+// console variants, dxgi, XAudio2, DirectStorage), where 0 would mean S_OK.
 [[nodiscard]] uint64_t StubReturnValue(Kernel::StubKind kind, std::string_view module);
 
 // Where an import was bound, in resolution order.

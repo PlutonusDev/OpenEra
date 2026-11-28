@@ -516,7 +516,8 @@ std::optional<uint32_t> ImageInitializer::RunEntryPoint(const LoadedModule& modu
 size_t ImageInitializer::RunningThreadCount() const
 {
     // A snapshot too: a thread just created may not have sent its attach notification yet.
-    auto running = RunningProcessThreads();
+    // Without a baseline nothing was attached, so no title code ever ran.
+    auto running = m_state->NotifierLoaded ? RunningProcessThreads() : std::unordered_set<DWORD>{};
     std::erase_if(running, [this](DWORD id) { return m_state->BaselineThreads.contains(id); });
     {
         const std::scoped_lock lock(m_state->Mutex);
