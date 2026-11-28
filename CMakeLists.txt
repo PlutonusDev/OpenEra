@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(OpenEra
-    VERSION 0.1.1
+    VERSION 0.1.2
     DESCRIPTION "Compatibility layer for running Xbox One and Xbox Series X|S titles on desktop Windows"
     LANGUAGES CXX)
 
