@@ -209,6 +209,13 @@ TEST_CASE("Stubs for COM and Gaming Runtime modules report failure, not success"
     CHECK(StubReturnValue(StubKind::Win32Import, "d3d12_xs.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::Win32Import, "XCRDAPI.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::Win32Import, "xmem.dll") == 0); // Allocators return pointers: null, not E_NOTIMPL.
+    // The console audio HAL reports failure through an HRESULT, but its yes/no queries return false.
+    CHECK(StubReturnValue(StubKind::Win32Import, "AcpHal.dll", "ApuAlloc") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "acphal", "ApuCreateHeap") == 0x80004001U);
+    CHECK(StubReturnValue(StubKind::Win32Import, "AcpHal.dll", "ApuIsVirtualAddressValid") == 0);
+    CHECK(StubReturnValue(StubKind::Win32Import, "d3d12_xs.dll", "IsSomething") == 0);
+    CHECK(StubReturnValue(StubKind::Win32Import, "AcpHal.dll", "ApuIsolate") == 0x80004001U);  // "Is" + lower case.
+    CHECK(StubReturnValue(StubKind::Win32Import, "AcpHal.dll", "ApuDisableX") == 0x80004001U); // Not a word start.
     CHECK(StubReturnValue(StubKind::Win32Import, "user32.dll") == 0);
     CHECK(StubReturnValue(StubKind::GameCoreApi, "xgameruntime.dll") == 0x80004001U);
     CHECK(StubReturnValue(StubKind::NtSyscall, "dxgi.dll") == 0xC0000002U);
