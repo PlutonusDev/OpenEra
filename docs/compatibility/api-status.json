@@ -15,7 +15,8 @@
             "XSystemGetAppSpecificDeviceId": "missing",
             "XSystemGetXboxLiveSandboxId": "implemented",
             "XPackageGetCurrentProcessPackageIdentifier": "missing",
-            "XLaunchUri": "missing"
+            "XLaunchUri": "missing",
+            "XPackageEnumeratePackages": "missing"
           }
         },
         {
@@ -127,7 +128,9 @@
             "FindNextFileW": "implemented",
             "FindClose": "implemented",
             "CreateDirectoryW": "implemented",
-            "DeleteFileW": "implemented"
+            "DeleteFileW": "implemented",
+            "CreateFile2": "implemented",
+            "CreateFileMappingFromApp": "implemented"
           }
         },
         {
@@ -139,7 +142,11 @@
             "VirtualQuery": "implemented",
             "HeapAlloc": "implemented",
             "HeapFree": "implemented",
-            "GetProcessHeap": "implemented"
+            "GetProcessHeap": "implemented",
+            "VirtualAlloc2": "implemented",
+            "MapViewOfFile3": "implemented",
+            "GlobalMemoryStatusEx": "implemented",
+            "K32GetProcessMemoryInfo": "implemented"
           }
         },
         {
@@ -157,7 +164,10 @@
             "TlsAlloc": "implemented",
             "TlsGetValue": "implemented",
             "TlsSetValue": "implemented",
-            "TlsFree": "implemented"
+            "TlsFree": "implemented",
+            "GetThreadDescription": "implemented",
+            "SetThreadIdealProcessorEx": "implemented",
+            "GetCurrentThreadStackLimits": "implemented"
           }
         },
         {
@@ -174,7 +184,9 @@
             "SetEvent": "implemented",
             "ResetEvent": "implemented",
             "WaitForSingleObject": "implemented",
-            "WaitForMultipleObjects": "implemented"
+            "WaitForMultipleObjects": "implemented",
+            "WaitOnAddress": "implemented",
+            "CreateWaitableTimerExW": "implemented"
           }
         },
         {
@@ -190,7 +202,27 @@
             "OutputDebugStringW": "implemented",
             "GetModuleHandleW": "implemented",
             "GetProcAddress": "implemented",
-            "LoadLibraryExW": "implemented"
+            "LoadLibraryExW": "implemented",
+            "GetSystemTimePreciseAsFileTime": "implemented",
+            "QueryUnbiasedInterruptTime": "implemented",
+            "GetLogicalProcessorInformationEx": "implemented",
+            "RtlCaptureStackBackTrace": "partial"
+          }
+        },
+        {
+          "name": "Other system libraries",
+          "functions": {
+            "WSAStartup": "implemented",
+            "WSAPoll": "implemented",
+            "CoInitializeEx": "partial",
+            "RoInitialize": "missing",
+            "GetAdaptersAddresses": "missing",
+            "WinHttpOpen": "missing",
+            "NtQuerySystemInformation": "missing",
+            "NtQueryInformationProcess": "missing",
+            "NtAllocateVirtualMemory": "missing",
+            "NtDelayExecution": "missing",
+            "RtlGetVersion": "missing"
           }
         }
       ]
