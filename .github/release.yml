@@ -1,0 +1,17 @@
+# Groups pull requests in generated release notes (the release workflow's changelog).
+changelog:
+  exclude:
+    labels: [skip-changelog, duplicate, invalid, wontfix]
+  categories:
+    - title: Breaking changes
+      labels: ['release: major']
+    - title: New features
+      labels: [enhancement]
+    - title: Fixes
+      labels: [bug]
+    - title: Title compatibility
+      labels: [compatibility]
+    - title: Documentation
+      labels: [documentation]
+    - title: Other changes
+      labels: ['*']
