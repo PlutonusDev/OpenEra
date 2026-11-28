@@ -21,7 +21,11 @@ void DisarmTitleExit() noexcept;
 
 // Adds ExitProcess and TerminateProcess (for the current process) to a kernel32 shim module.
 bool AddExitExports(ShimModule& kernel32);
-// Adds exit, _exit and quick_exit to a ucrtbase shim module. The title's atexit
-// handlers aren't run: OpenEra's process carries on, so the C runtime mustn't shut down.
+// Adds exit, _exit and quick_exit to a ucrtbase shim module, and the hooks an
+// executable's C runtime start-up registers with the process-wide C runtime
+// (_crt_atexit, _crt_at_quick_exit, _register_thread_local_exe_atexit_callback,
+// __setusermatherr). While armed those stay with the title, not the host, and
+// the title's exit runs its TLS destructors and atexit handlers (quick_exit its
+// at_quick_exit ones) before ending its thread; the host's C runtime keeps running.
 bool AddCrtExitExports(ShimModule& ucrtbase);
 } // namespace OpenEra::Kernel

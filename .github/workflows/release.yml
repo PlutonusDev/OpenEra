@@ -1,0 +1,152 @@
+name: Release
+
+# Builds, tests and publishes a GitHub release when a pull request is merged
+# into the release branch. Direct pushes to it don't release.
+on:
+  push:
+    branches: [release]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Merged pull request and new version
+    runs-on: ubuntu-latest
+    outputs:
+      merged: ${{ steps.merge.outputs.merged }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pushed commit comes from a merged pull request
+        id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $count = gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" `
+              --jq '[.[] | select(.merged_at != null and .base.ref == "release")] | length'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $merged = [int]$count -gt 0
+          if (-not $merged) { '::notice::Not a merged pull request into release; nothing to release.' }
+          "merged=$($merged.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+      - name: Version from CMakeLists.txt
+        id: version
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $cmake = Get-Content CMakeLists.txt -Raw
+          if ($cmake -notmatch 'project\(OpenEra\s+VERSION\s+(\d+)\.(\d+)\.(\d+)')
+          {
+              Write-Error 'No project VERSION found in CMakeLists.txt.'
+              exit 1
+          }
+          $version = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+          $tag = "v$version"
+          gh api "repos/${{ github.repository }}/git/ref/tags/$tag" --silent 2>$null
+          if ($LASTEXITCODE -eq 0)
+          {
+              Write-Error "$tag is already released. Bump the project VERSION in CMakeLists.txt."
+              exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "prerelease=$(($Matches[1] -eq '0').ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+  test:
+    name: Build and test (${{ matrix.name }})
+    needs: check
+    if: needs.check.outputs.merged == 'true'
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: MSVC + Core Check
+            compiler: cl
+          - name: Clang-CL
+            compiler: clang-cl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          . .github/scripts/Enter-VsDevShell.ps1
+          $compiler = if ('${{ matrix.compiler }}' -eq 'clang-cl') { $VsClangCl } else { 'cl' }
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=$compiler"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build
+        shell: pwsh
+        run: |
+          . .github/scripts/Enter-VsDevShell.ps1
+          cmake --build build
+
+      - name: Test
+        shell: pwsh
+        run: |
+          . .github/scripts/Enter-VsDevShell.ps1
+          ctest --test-dir build --output-on-failure --no-tests=error
+
+  release:
+    name: Publish ${{ needs.check.outputs.tag }}
+    needs: [check, test]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: pwsh
+        run: |
+          . .github/scripts/Enter-VsDevShell.ps1
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $name = "OpenEra-$env:VERSION-win-x64"
+          $stage = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          foreach ($file in 'build/src/App/openera.exe', 'build/src/App/OpenEraTlsSlot.dll',
+                            'README.md', 'COMPATIBILITY.md', 'LICENSE')
+          {
+              if (-not (Test-Path $file)) { Write-Error "Missing $file"; exit 1 }
+              Copy-Item $file $stage
+          }
+          $zip = "$name.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Set-Content -Encoding ascii "$zip.sha256"
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $zip = '${{ steps.package.outputs.zip }}'
+          $notes = 'Windows x64 build of the openera launcher. Needs the Microsoft Visual C++ Redistributable (x64).'
+          $arguments = @($env:TAG, $zip, "$zip.sha256", '--target', '${{ github.sha }}',
+                         '--title', "OpenEra $env:VERSION", '--notes', $notes, '--generate-notes')
+          if ('${{ needs.check.outputs.prerelease }}' -eq 'true') { $arguments += '--prerelease' }
+          gh release create @arguments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
