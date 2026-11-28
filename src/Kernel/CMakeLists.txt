@@ -22,7 +22,13 @@ add_library(OpenEraKernel STATIC
     CrtFileShims.h
     CrtFileShims.cpp
     ExitShims.h
-    ExitShims.cpp)
+    ExitShims.cpp
+    TaskQueue.h
+    TaskQueue.cpp
+    Async.h
+    Async.cpp
+    GameRuntimeShims.h
+    GameRuntimeShims.cpp)
 add_library(OpenEra::Kernel ALIAS OpenEraKernel)
 
 target_link_libraries(OpenEraKernel

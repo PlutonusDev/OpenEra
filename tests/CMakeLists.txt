@@ -21,6 +21,7 @@ add_executable(OpenEraTests
     ExceptionTests.cpp
     FileMemoryShimTests.cpp
     GameConfigTests.cpp
+    GameRuntimeTests.cpp
     GraphicsShimTests.cpp
     HostModulesTests.cpp
     ImageInitializerTests.cpp
