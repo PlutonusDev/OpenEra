@@ -65,6 +65,7 @@ target_compile_definitions(OpenEraTests PRIVATE
     OPENERA_FIXTURE_DIR="${OPENERA_FIXTURE_DIR}"
     OPENERA_TLS_SLOT="$<TARGET_FILE:OpenEraTlsSlot>"
     OPENERA_ASSERT_HELPER=L"$<TARGET_FILE:OpenEraAssertHelper>"
-    OPENERA_LAUNCHER=L"$<TARGET_FILE:openera>")
+    OPENERA_LAUNCHER=L"$<TARGET_FILE:openera>"
+    OPENERA_EXPECTED_VERSION="${OPENERA_VERSION}")
 
 catch_discover_tests(OpenEraTests)
