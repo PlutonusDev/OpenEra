@@ -158,6 +158,16 @@ New parsers and binary structures need unit tests. Shims should be tested the wa
   - List any public references you used.
 - **Testing notes:** say which compilers you built with, and what you ran by hand.
 
+## Releases
+
+Releases come from the `release` branch. Merging a pull request into it runs [the release workflow](.github/workflows/release.yml):
+
+1. It builds and tests a Release configuration with MSVC and Clang-CL.
+2. It packages `openera.exe` and `OpenEraTlsSlot.dll` as `OpenEra-<version>-win-x64.zip`, with a SHA-256 checksum.
+3. It publishes them as a GitHub release tagged `v<version>`, with generated notes. 0.x versions are marked as pre-releases.
+
+The version is the `project(OpenEra VERSION ...)` in `CMakeLists.txt`, so bump it in the pull request. A version that's already released fails the workflow. Pushing directly to `release` doesn't publish anything.
+
 ## Compatibility reports
 
 Use the **Compatibility report** issue template to report how a title behaves under OpenEra.
