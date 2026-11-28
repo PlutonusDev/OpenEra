@@ -67,9 +67,9 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | GDK runtime | XGameSave | 0 | 0 | 0 | 13 | 0.0% |
 | GDK runtime | XNetworking | 0 | 0 | 0 | 3 | 0.0% |
 | GDK runtime | XMem / XThread | 0 | 0 | 0 | 5 | 0.0% |
-| Windows system | Files | 14 | 0 | 0 | 0 | 100.0% |
-| Windows system | Memory | 11 | 0 | 0 | 0 | 100.0% |
-| Windows system | Threads and TLS | 16 | 0 | 0 | 0 | 100.0% |
+| Windows system | Files | 15 | 0 | 0 | 0 | 100.0% |
+| Windows system | Memory | 12 | 0 | 0 | 0 | 100.0% |
+| Windows system | Threads and TLS | 17 | 0 | 0 | 0 | 100.0% |
 | Windows system | Synchronization | 14 | 0 | 0 | 0 | 100.0% |
 | Windows system | Time and process | 14 | 1 | 0 | 0 | 93.3% |
 | Windows system | Other system libraries | 2 | 1 | 0 | 8 | 18.2% |
@@ -78,7 +78,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | Direct3D 12 | ID3D12CommandQueue | 0 | 0 | 0 | 3 | 0.0% |
 | Input and audio | GameInput | 0 | 0 | 0 | 12 | 0.0% |
 | Input and audio | XAudio2 | 0 | 0 | 0 | 11 | 0.0% |
-| **Total** | | **101** | **2** | **0** | **116** | **46.1%** |
+| **Total** | | **104** | **2** | **0** | **116** | **46.8%** |
 
 ### GDK runtime
 
@@ -204,7 +204,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 ### Windows system
 
-<details><summary><b>Files</b>: 14/14 implemented</summary>
+<details><summary><b>Files</b>: 15/15 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
@@ -222,10 +222,11 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | `DeleteFileW` | ✅ Implemented |
 | `CreateFile2` | ✅ Implemented |
 | `CreateFileMappingFromApp` | ✅ Implemented |
+| `FlushViewOfFile` | ✅ Implemented |
 
 </details>
 
-<details><summary><b>Memory</b>: 11/11 implemented</summary>
+<details><summary><b>Memory</b>: 12/12 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
@@ -240,10 +241,11 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | `MapViewOfFile3` | ✅ Implemented |
 | `GlobalMemoryStatusEx` | ✅ Implemented |
 | `K32GetProcessMemoryInfo` | ✅ Implemented |
+| `GetLargePageMinimum` | ✅ Implemented |
 
 </details>
 
-<details><summary><b>Threads and TLS</b>: 16/16 implemented</summary>
+<details><summary><b>Threads and TLS</b>: 17/17 implemented</summary>
 
 | Function | Status |
 | :--- | :--- |
@@ -263,6 +265,7 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | `GetThreadDescription` | ✅ Implemented |
 | `SetThreadIdealProcessorEx` | ✅ Implemented |
 | `GetCurrentThreadStackLimits` | ✅ Implemented |
+| `QueryThreadCycleTime` | ✅ Implemented |
 
 </details>
 

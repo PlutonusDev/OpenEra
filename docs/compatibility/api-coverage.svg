@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="837" viewBox="0 0 1000 837" role="img" aria-label="OpenEra API coverage: 101 of 219 tracked functions implemented (46.1%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="852" viewBox="0 0 1000 852" role="img" aria-label="OpenEra API coverage: 104 of 222 tracked functions implemented (46.8%)">
   <style>
     .bg{fill:#ffffff;stroke:#d0d7de}.card{fill:#f6f8fa;stroke:#d8dee4}.track{fill:#eaeef2}
     .title{font:600 20px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}.h2{font:600 15px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1f2328}
@@ -8,9 +8,9 @@
       .title,.h2,.label{fill:#e6edf3}.meta{fill:#9198a1}
       .implemented{fill:#3fb950}.partial{fill:#d29922}.stubbed{fill:#a371f7}.missing{fill:#30363d}}
   </style>
-  <rect class="bg" x="0.5" y="0.5" width="999" height="836" rx="12"/>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="851" rx="12"/>
   <text class="title" x="28" y="48">OpenEra API coverage</text>
-  <text class="meta" x="28" y="70">101 of 219 tracked functions implemented (46.1%)</text>
+  <text class="meta" x="28" y="70">104 of 222 tracked functions implemented (46.8%)</text>
   <rect class="missing" x="874" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="891" y="48">Missing 116</text>
   <rect class="stubbed" x="777" y="37" width="12" height="12" rx="3"/>
@@ -18,10 +18,10 @@
   <rect class="partial" x="680" y="37" width="12" height="12" rx="3"/>
   <text class="meta" x="697" y="48">Partial 2</text>
   <rect class="implemented" x="540" y="37" width="12" height="12" rx="3"/>
-  <text class="meta" x="557" y="48">Implemented 101</text>
+  <text class="meta" x="557" y="48">Implemented 104</text>
   <rect class="track" x="28" y="88" width="944" height="8" rx="4"/>
-  <rect class="implemented" x="28" y="88" width="435" height="8" rx="4"/>
-  <rect class="partial" x="463" y="88" width="9" height="8" rx="4"/>
+  <rect class="implemented" x="28" y="88" width="442" height="8" rx="4"/>
+  <rect class="partial" x="470" y="88" width="9" height="8" rx="4"/>
   <text class="h2" x="28" y="134">GDK runtime</text>
   <text class="meta" x="972" y="134" text-anchor="end">30/71 implemented (42.3%)</text>
   <rect class="track" x="28" y="144" width="944" height="4" rx="2"/>
@@ -133,14 +133,14 @@
     <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>XNetworkingUnregisterConnectivityHintChanged: Missing</title></rect>
   </g>
   <text class="h2" x="28" y="360">Windows system</text>
-  <text class="meta" x="972" y="360" text-anchor="end">71/81 implemented (87.7%)</text>
+  <text class="meta" x="972" y="360" text-anchor="end">74/84 implemented (88.1%)</text>
   <rect class="track" x="28" y="370" width="944" height="4" rx="2"/>
-  <rect class="implemented" x="28" y="370" width="827" height="4" rx="2"/>
-  <rect class="partial" x="855" y="370" width="23" height="4" rx="2"/>
+  <rect class="implemented" x="28" y="370" width="832" height="4" rx="2"/>
+  <rect class="partial" x="860" y="370" width="22" height="4" rx="2"/>
   <g transform="translate(28,384)">
-    <rect class="card" width="213" height="73" rx="8"/>
+    <rect class="card" width="213" height="88" rx="8"/>
     <text class="label" x="12" y="23">Threads and TLS</text>
-    <text class="meta small" x="201" y="23" text-anchor="end">16/16</text>
+    <text class="meta small" x="201" y="23" text-anchor="end">17/17</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateThread: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ExitThread: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>GetCurrentThreadId: Implemented</title></rect>
@@ -157,9 +157,30 @@
     <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>GetThreadDescription: Implemented</title></rect>
     <rect class="implemented" x="42" y="49" width="12" height="12" rx="2"><title>SetThreadIdealProcessorEx: Implemented</title></rect>
     <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>GetCurrentThreadStackLimits: Implemented</title></rect>
+    <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>QueryThreadCycleTime: Implemented</title></rect>
   </g>
   <g transform="translate(253,384)">
-    <rect class="card" width="213" height="73" rx="8"/>
+    <rect class="card" width="127" height="88" rx="8"/>
+    <text class="label" x="12" y="23">Files</text>
+    <text class="meta small" x="115" y="23" text-anchor="end">15/15</text>
+    <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Implemented</title></rect>
+    <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Implemented</title></rect>
+    <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Implemented</title></rect>
+    <rect class="implemented" x="57" y="34" width="12" height="12" rx="2"><title>CloseHandle: Implemented</title></rect>
+    <rect class="implemented" x="72" y="34" width="12" height="12" rx="2"><title>GetFileSizeEx: Implemented</title></rect>
+    <rect class="implemented" x="87" y="34" width="12" height="12" rx="2"><title>SetFilePointerEx: Implemented</title></rect>
+    <rect class="implemented" x="102" y="34" width="12" height="12" rx="2"><title>GetFileAttributesW: Implemented</title></rect>
+    <rect class="implemented" x="12" y="49" width="12" height="12" rx="2"><title>FindFirstFileW: Implemented</title></rect>
+    <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>FindNextFileW: Implemented</title></rect>
+    <rect class="implemented" x="42" y="49" width="12" height="12" rx="2"><title>FindClose: Implemented</title></rect>
+    <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Implemented</title></rect>
+    <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Implemented</title></rect>
+    <rect class="implemented" x="87" y="49" width="12" height="12" rx="2"><title>CreateFile2: Implemented</title></rect>
+    <rect class="implemented" x="102" y="49" width="12" height="12" rx="2"><title>CreateFileMappingFromApp: Implemented</title></rect>
+    <rect class="implemented" x="12" y="64" width="12" height="12" rx="2"><title>FlushViewOfFile: Implemented</title></rect>
+  </g>
+  <g transform="translate(392,384)">
+    <rect class="card" width="213" height="88" rx="8"/>
     <text class="label" x="12" y="23">Time and process</text>
     <text class="meta small" x="201" y="23" text-anchor="end">14/15</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>QueryPerformanceCounter: Implemented</title></rect>
@@ -178,27 +199,8 @@
     <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>GetLogicalProcessorInformationEx: Implemented</title></rect>
     <rect class="partial" x="42" y="49" width="12" height="12" rx="2"><title>RtlCaptureStackBackTrace: Partial</title></rect>
   </g>
-  <g transform="translate(478,384)">
-    <rect class="card" width="127" height="73" rx="8"/>
-    <text class="label" x="12" y="23">Files</text>
-    <text class="meta small" x="115" y="23" text-anchor="end">14/14</text>
-    <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>CreateFileW: Implemented</title></rect>
-    <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>ReadFile: Implemented</title></rect>
-    <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>WriteFile: Implemented</title></rect>
-    <rect class="implemented" x="57" y="34" width="12" height="12" rx="2"><title>CloseHandle: Implemented</title></rect>
-    <rect class="implemented" x="72" y="34" width="12" height="12" rx="2"><title>GetFileSizeEx: Implemented</title></rect>
-    <rect class="implemented" x="87" y="34" width="12" height="12" rx="2"><title>SetFilePointerEx: Implemented</title></rect>
-    <rect class="implemented" x="102" y="34" width="12" height="12" rx="2"><title>GetFileAttributesW: Implemented</title></rect>
-    <rect class="implemented" x="12" y="49" width="12" height="12" rx="2"><title>FindFirstFileW: Implemented</title></rect>
-    <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>FindNextFileW: Implemented</title></rect>
-    <rect class="implemented" x="42" y="49" width="12" height="12" rx="2"><title>FindClose: Implemented</title></rect>
-    <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>CreateDirectoryW: Implemented</title></rect>
-    <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>DeleteFileW: Implemented</title></rect>
-    <rect class="implemented" x="87" y="49" width="12" height="12" rx="2"><title>CreateFile2: Implemented</title></rect>
-    <rect class="implemented" x="102" y="49" width="12" height="12" rx="2"><title>CreateFileMappingFromApp: Implemented</title></rect>
-  </g>
   <g transform="translate(617,384)">
-    <rect class="card" width="213" height="73" rx="8"/>
+    <rect class="card" width="213" height="88" rx="8"/>
     <text class="label" x="12" y="23">Synchronization</text>
     <text class="meta small" x="201" y="23" text-anchor="end">14/14</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>InitializeCriticalSection: Implemented</title></rect>
@@ -217,9 +219,9 @@
     <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>CreateWaitableTimerExW: Implemented</title></rect>
   </g>
   <g transform="translate(842,384)">
-    <rect class="card" width="130" height="73" rx="8"/>
+    <rect class="card" width="130" height="88" rx="8"/>
     <text class="label" x="12" y="23">Memory</text>
-    <text class="meta small" x="118" y="23" text-anchor="end">11/11</text>
+    <text class="meta small" x="118" y="23" text-anchor="end">12/12</text>
     <rect class="implemented" x="12" y="34" width="12" height="12" rx="2"><title>VirtualAlloc: Implemented</title></rect>
     <rect class="implemented" x="27" y="34" width="12" height="12" rx="2"><title>VirtualFree: Implemented</title></rect>
     <rect class="implemented" x="42" y="34" width="12" height="12" rx="2"><title>VirtualProtect: Implemented</title></rect>
@@ -231,8 +233,9 @@
     <rect class="implemented" x="27" y="49" width="12" height="12" rx="2"><title>MapViewOfFile3: Implemented</title></rect>
     <rect class="implemented" x="42" y="49" width="12" height="12" rx="2"><title>GlobalMemoryStatusEx: Implemented</title></rect>
     <rect class="implemented" x="57" y="49" width="12" height="12" rx="2"><title>K32GetProcessMemoryInfo: Implemented</title></rect>
+    <rect class="implemented" x="72" y="49" width="12" height="12" rx="2"><title>GetLargePageMinimum: Implemented</title></rect>
   </g>
-  <g transform="translate(28,469)">
+  <g transform="translate(28,484)">
     <rect class="card" width="220" height="58" rx="8"/>
     <text class="label" x="12" y="23">Other system libraries</text>
     <text class="meta small" x="208" y="23" text-anchor="end">2/11</text>
@@ -248,10 +251,10 @@
     <rect class="missing" x="147" y="34" width="12" height="12" rx="2"><title>NtDelayExecution: Missing</title></rect>
     <rect class="missing" x="162" y="34" width="12" height="12" rx="2"><title>RtlGetVersion: Missing</title></rect>
   </g>
-  <text class="h2" x="28" y="571">Direct3D 12</text>
-  <text class="meta" x="972" y="571" text-anchor="end">0/44 implemented (0.0%)</text>
-  <rect class="track" x="28" y="581" width="944" height="4" rx="2"/>
-  <g transform="translate(28,595)">
+  <text class="h2" x="28" y="586">Direct3D 12</text>
+  <text class="meta" x="972" y="586" text-anchor="end">0/44 implemented (0.0%)</text>
+  <rect class="track" x="28" y="596" width="944" height="4" rx="2"/>
+  <g transform="translate(28,610)">
     <rect class="card" width="386" height="73" rx="8"/>
     <text class="label" x="12" y="23">ID3D12GraphicsCommandList</text>
     <text class="meta small" x="374" y="23" text-anchor="end">0/23</text>
@@ -279,7 +282,7 @@
     <rect class="missing" x="327" y="34" width="12" height="12" rx="2"><title>ClearRenderTargetView: Missing</title></rect>
     <rect class="missing" x="342" y="34" width="12" height="12" rx="2"><title>ClearDepthStencilView: Missing</title></rect>
   </g>
-  <g transform="translate(426,595)">
+  <g transform="translate(426,610)">
     <rect class="card" width="244" height="73" rx="8"/>
     <text class="label" x="12" y="23">ID3D12Device</text>
     <text class="meta small" x="232" y="23" text-anchor="end">0/18</text>
@@ -302,7 +305,7 @@
     <rect class="missing" x="42" y="49" width="12" height="12" rx="2"><title>CreatePlacedResource: Missing</title></rect>
     <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>CreateFence: Missing</title></rect>
   </g>
-  <g transform="translate(682,595)">
+  <g transform="translate(682,610)">
     <rect class="card" width="290" height="73" rx="8"/>
     <text class="label" x="12" y="23">ID3D12CommandQueue</text>
     <text class="meta small" x="278" y="23" text-anchor="end">0/3</text>
@@ -310,10 +313,10 @@
     <rect class="missing" x="27" y="34" width="12" height="12" rx="2"><title>Signal: Missing</title></rect>
     <rect class="missing" x="42" y="34" width="12" height="12" rx="2"><title>Wait: Missing</title></rect>
   </g>
-  <text class="h2" x="28" y="712">Input and audio</text>
-  <text class="meta" x="972" y="712" text-anchor="end">0/23 implemented (0.0%)</text>
-  <rect class="track" x="28" y="722" width="944" height="4" rx="2"/>
-  <g transform="translate(28,736)">
+  <text class="h2" x="28" y="727">Input and audio</text>
+  <text class="meta" x="972" y="727" text-anchor="end">0/23 implemented (0.0%)</text>
+  <rect class="track" x="28" y="737" width="944" height="4" rx="2"/>
+  <g transform="translate(28,751)">
     <rect class="card" width="126" height="73" rx="8"/>
     <text class="label" x="12" y="23">GameInput</text>
     <text class="meta small" x="114" y="23" text-anchor="end">0/12</text>
@@ -330,7 +333,7 @@
     <rect class="missing" x="57" y="49" width="12" height="12" rx="2"><title>IGameInputDevice::GetDeviceInfo: Missing</title></rect>
     <rect class="missing" x="72" y="49" width="12" height="12" rx="2"><title>IGameInputDevice::SetRumbleState: Missing</title></rect>
   </g>
-  <g transform="translate(166,736)">
+  <g transform="translate(166,751)">
     <rect class="card" width="126" height="73" rx="8"/>
     <text class="label" x="12" y="23">XAudio2</text>
     <text class="meta small" x="114" y="23" text-anchor="end">0/11</text>
