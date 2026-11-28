@@ -87,7 +87,9 @@ std::vector<std::string> HostModules::DefaultModules()
 
 std::vector<std::string> HostModules::DefaultPrefixes()
 {
-    return {"api-ms-win-crt-", "api-ms-win-core-"};
+    // Plus the console's window and message API sets, which desktop Windows also
+    // resolves to user32 (titles create their window through them).
+    return {"api-ms-win-crt-", "api-ms-win-core-", "ext-ms-win-rtcore-ntuser-"};
 }
 
 bool HostModules::IsAllowed(std::string_view module) const

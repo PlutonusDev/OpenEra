@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Windows.h>
@@ -32,15 +33,16 @@ TEST_CASE("ModuleKey lowercases and drops .dll", "[HostModules]")
 TEST_CASE("The default allowlist covers Win32 and the C runtime only", "[HostModules]")
 {
     const auto host = HostModules::CreateDefault();
-    for (const char* allowed : {"KERNEL32.dll", "kernelbase", "USER32.dll", "WS2_32.dll", "ADVAPI32.dll",
-                                "MSVCP140.dll", "MSVCP140_ATOMIC_WAIT.dll", "VCRUNTIME140_1.dll",
-                                "api-ms-win-crt-runtime-l1-1-0.dll", "api-ms-win-core-synch-l1-2-0.dll"})
+    for (const char* allowed :
+         {"KERNEL32.dll", "kernelbase", "USER32.dll", "WS2_32.dll", "ADVAPI32.dll", "MSVCP140.dll",
+          "MSVCP140_ATOMIC_WAIT.dll", "VCRUNTIME140_1.dll", "api-ms-win-crt-runtime-l1-1-0.dll",
+          "api-ms-win-core-synch-l1-2-0.dll", "ext-ms-win-rtcore-ntuser-window-l1-1-0.dll"})
     {
         INFO(allowed);
         CHECK(host->IsAllowed(allowed));
     }
-    for (const char* refused :
-         {"d3d12_x.dll", "XAudio2_9.dll", "GameInput.dll", "xgameruntime.dll", "ntdll.dll", "game.dll", ""})
+    for (const char* refused : {"d3d12_x.dll", "XAudio2_9.dll", "GameInput.dll", "xgameruntime.dll", "ntdll.dll",
+                                "game.dll", "ext-ms-win-gaming-xinput-l1-1-0.dll", ""})
     {
         INFO(refused);
         CHECK_FALSE(host->IsAllowed(refused));
@@ -81,6 +83,19 @@ TEST_CASE("FindExport binds to the host's real exports", "[HostModules]")
     CHECK_FALSE(host->FindExport("kernel32.dll", "NoSuchExportInKernel32").has_value());
     CHECK_FALSE(host->FindExport("kernel32.dll", "").has_value());
     CHECK_FALSE(host->FindExport("xaudio2_9.dll", "XAudio2Create").has_value()); // Exists, but not allowed.
+}
+
+TEST_CASE("Console window and message API sets bind to the host's user32", "[HostModules]")
+{
+    const auto host = HostModules::CreateDefault();
+    for (const auto& [set, symbol] : {std::pair{"ext-ms-win-rtcore-ntuser-window-l1-1-0.dll", "CreateWindowExW"},
+                                      std::pair{"ext-ms-win-rtcore-ntuser-window-l1-1-0.dll", "RegisterClassExW"},
+                                      std::pair{"ext-ms-win-rtcore-ntuser-message-l1-1-0.dll", "PeekMessageW"},
+                                      std::pair{"ext-ms-win-rtcore-ntuser-cursor-l1-1-0.dll", "LoadCursorW"}})
+    {
+        INFO(set << "!" << symbol);
+        CHECK(host->FindExport(set, symbol).value_or(0) == RealExport(L"user32.dll", symbol));
+    }
 }
 
 TEST_CASE("Handle caches modules and maps handles back to names", "[HostModules]")
