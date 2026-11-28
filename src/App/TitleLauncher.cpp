@@ -300,7 +300,10 @@ TitleConfigResult ReadTitleConfig(const std::filesystem::path& folder, Logger& l
 LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
 {
     LaunchResult result;
-    auto config = ReadTitleConfig(options.Folder, logger);
+    // Absolute up front: the title folder becomes the current directory before anything is loaded.
+    std::error_code folderError;
+    const auto folder = std::filesystem::absolute(options.Folder, folderError).lexically_normal();
+    auto config = ReadTitleConfig(folder, logger);
     if (!config.Config)
     {
         result.Error = config.Error;
@@ -335,9 +338,9 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
     }
     Kernel::SetGameRuntimeTitle({.TitleId = Kernel::ParseTitleId(config.Config->TitleId),
                                  .Device = Kernel::DeviceForFamily(executable->TargetDeviceFamily)});
-    auto& files = session->Files.emplace(
-        options.Folder, options.OverlayDirectory.empty() ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
-                                                         : options.OverlayDirectory);
+    auto& files = session->Files.emplace(folder, options.OverlayDirectory.empty()
+                                                     ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
+                                                     : options.OverlayDirectory);
     ActiveFileSystemScope activeFiles(files);
     logger.Info("Launch: title writes go to {}", files.OverlayRoot().string());
 
@@ -350,18 +353,18 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
                             logger);
     }
     auto& manager =
-        session->Manager.emplace(Loader::DirectoryModuleReader(options.Folder / location->Directory), session->Shims,
+        session->Manager.emplace(Loader::DirectoryModuleReader(folder / location->Directory), session->Shims,
                                  session->Stubs, *session->Allocator, logger, session->Host.get());
     if (initializer)
     {
         manager.SetInitializer(&*initializer);
     }
-    const auto imageDirectory = std::filesystem::absolute(options.Folder / location->Directory).lexically_normal();
+    const auto imageDirectory = (folder / location->Directory).lexically_normal();
     manager.SetImageDirectory(imageDirectory);
     const auto image =
         imageDirectory / std::filesystem::path(std::u8string(location->FileName.begin(), location->FileName.end()));
     TitleProcessScope process({.Image = image, .CommandLine = Kernel::BuildCommandLine(image, options.Arguments)},
-                              std::filesystem::absolute(options.Folder), logger);
+                              folder, logger);
     ActiveManagerScope active(manager);
     const TimerResolutionScope timer;
     if (!timer.Raised())
