@@ -128,13 +128,13 @@ void BindModule(const PeImportModule& module, const Kernel::ShimRegistry& shims,
         }
         else
         {
-            const auto& stub =
-                bound.Stubs->Entries.emplace_back(StubEntry{.Kind = kind,
-                                                            .Module = module.DllName,
-                                                            .Symbol = entry.Name,
-                                                            .Ordinal = entry.Ordinal,
-                                                            .ReturnValue = StubReturnValue(kind, module.DllName),
-                                                            .Registry = &stubs});
+            const auto& stub = bound.Stubs->Entries.emplace_back(
+                StubEntry{.Kind = kind,
+                          .Module = module.DllName,
+                          .Symbol = entry.Name,
+                          .Ordinal = entry.Ordinal,
+                          .ReturnValue = StubReturnValue(kind, module.DllName, entry.Name),
+                          .Registry = &stubs});
             pending.push_back({.Binding = bound.Bindings.size(), .Entry = &stub});
         }
 
@@ -283,12 +283,32 @@ StubKind StubKindForModule(std::string_view module)
                                                                                             : StubKind::Win32Import;
 }
 
-uint64_t StubReturnValue(StubKind kind, std::string_view module)
+namespace
 {
-    // COM and DirectX entry points report failure through an HRESULT, so 0 would read as success.
-    static const std::array<std::string_view, 9> kHResultModules = {
-        "d3d12", "d3d12_x", "d3d12_xs", "dxgi", "dstorage", "xcrdapi", "xaudio2_8", "xaudio2_9", "xapobase"};
-    if (kind == StubKind::Win32Import && std::ranges::find(kHResultModules, ModuleKey(module)) != kHResultModules.end())
+// A yes/no query such as ApuIsVirtualAddressValid: "Is" then a capital, at the start or after a prefix.
+bool IsPredicateName(std::string_view symbol) noexcept
+{
+    for (size_t at = symbol.find("Is"); at != std::string_view::npos; at = symbol.find("Is", at + 1))
+    {
+        const bool starts = at == 0 || (symbol.at(at - 1) >= 'a' && symbol.at(at - 1) <= 'z');
+        const bool followed = at + 2 < symbol.size() && symbol.at(at + 2) >= 'A' && symbol.at(at + 2) <= 'Z';
+        if (starts && followed)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+} // namespace
+
+uint64_t StubReturnValue(StubKind kind, std::string_view module, std::string_view symbol)
+{
+    // COM, DirectX and console HAL entry points report failure through an HRESULT, so 0 would read as
+    // success. Their yes/no queries keep 0 (false): E_NOTIMPL is non-zero, so it would read as true.
+    static const std::array<std::string_view, 10> kHResultModules = {
+        "d3d12", "d3d12_x", "d3d12_xs", "dxgi", "dstorage", "xcrdapi", "xaudio2_8", "xaudio2_9", "xapobase", "acphal"};
+    if (kind == StubKind::Win32Import &&
+        std::ranges::find(kHResultModules, ModuleKey(module)) != kHResultModules.end() && !IsPredicateName(symbol))
     {
         return DefaultStubReturnValue(StubKind::GameCoreApi);
     }

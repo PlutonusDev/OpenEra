@@ -8,6 +8,7 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
+#include "Graphics/ConsoleDevice.h"
 #include "Graphics/DxgiFactory.h"
 #include "Kernel/ShimGuard.h"
 #include "Kernel/ShimModule.h"
@@ -90,7 +91,7 @@ HRESULT CreateWrappedFactory(std::string_view name, REFIID riid, void** factory,
 }
 } // namespace
 
-bool RegisterGraphicsShims(Kernel::ShimRegistry& shims)
+bool RegisterGraphicsShims(Kernel::ShimRegistry& shims, Kernel::StubRegistry* stubs)
 {
     Kernel::ShimModule dxgi("dxgi.dll", Kernel::StubKind::Win32Import);
     const bool dxgiExported = dxgi.Export("CreateDXGIFactory", Kernel::ToShimProc(&CreateDXGIFactoryShim)) &&
@@ -100,6 +101,11 @@ bool RegisterGraphicsShims(Kernel::ShimRegistry& shims)
     Kernel::ShimModule d3d12("d3d12.dll", Kernel::StubKind::Win32Import);
     const bool d3d12Exported = d3d12.Export("D3D12CreateDevice", Kernel::ToShimProc(&D3D12CreateDeviceShim));
 
-    return dxgiExported && d3d12Exported && shims.Register(std::move(dxgi)) && shims.Register(std::move(d3d12));
+    Kernel::ShimModule console("d3d12_xs.dll", Kernel::StubKind::Win32Import);
+    console.AddAlias("d3d12_x.dll");
+    const bool consoleExported = AddConsoleDeviceExports(console, stubs);
+
+    return dxgiExported && d3d12Exported && consoleExported && shims.Register(std::move(dxgi)) &&
+           shims.Register(std::move(d3d12)) && shims.Register(std::move(console));
 }
 } // namespace OpenEra::Graphics

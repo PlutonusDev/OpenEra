@@ -330,7 +330,8 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
                 config.Config->TitleId, executable->Name);
 
     auto session = std::make_unique<TitleSession>(logger);
-    if (!Loader::RegisterLoaderShims(session->Shims) || !Graphics::RegisterGraphicsShims(session->Shims) ||
+    if (!Loader::RegisterLoaderShims(session->Shims) ||
+        !Graphics::RegisterGraphicsShims(session->Shims, &session->Stubs) ||
         !Kernel::RegisterGameRuntimeShims(session->Shims))
     {
         result.Error = LaunchError::LoadFailed;
