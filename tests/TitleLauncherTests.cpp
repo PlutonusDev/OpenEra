@@ -129,6 +129,24 @@ TEST_CASE("The executable can live in a subfolder", "[launcher]")
     CHECK(result.ExitCode == std::optional<uint32_t>(42));
 }
 
+TEST_CASE("A title folder given as a relative path runs", "[launcher]")
+{
+    const TitleFolder folder("Relative");
+    folder.WriteConfig("EntryImage.exe");
+    folder.AddEntryImage({});
+    const auto before = std::filesystem::current_path();
+    std::filesystem::current_path(folder.Path().parent_path());
+    auto options = OptionsFor(folder);
+    // The form a command line gives: relative, with a trailing separator.
+    options.Folder =
+        std::filesystem::path(L"..") / folder.Path().parent_path().filename() / folder.Path().filename() / "";
+    Logger logger;
+    const auto result = RunTitleFolder(options, logger);
+    std::filesystem::current_path(before);
+    CHECK(result.Error == LaunchError::None);
+    CHECK(result.ExitCode == std::optional<uint32_t>(42));
+}
+
 TEST_CASE("Without Start a title is only loaded and linked", "[launcher]")
 {
     const TitleFolder folder("NoStart");
@@ -165,7 +183,9 @@ TEST_CASE("Unusable title folders are refused", "[launcher]")
     CHECK(RunTitleFolder(options, logger).Error == LaunchError::BadExecutablePath);
 
     folder.WriteConfig("Missing.exe");
-    CHECK(RunTitleFolder(options, logger).Error == LaunchError::LoadFailed);
+    const auto missing = RunTitleFolder(options, logger);
+    CHECK(missing.Error == LaunchError::LoadFailed);
+    CHECK_FALSE(missing.LeftRunning); // No title code ran, so no title threads are left.
 
     options.ExecutableId = "NoSuchId";
     CHECK(RunTitleFolder(options, logger).Error == LaunchError::NoExecutable);
