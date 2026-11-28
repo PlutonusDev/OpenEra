@@ -6,14 +6,14 @@
         {
           "name": "XGameRuntime",
           "functions": {
-            "XGameRuntimeInitialize": "missing",
-            "XGameRuntimeUninitialize": "missing",
-            "XGameRuntimeIsFeatureAvailable": "missing",
-            "XGameGetXboxTitleId": "missing",
-            "XSystemGetDeviceType": "missing",
-            "XSystemGetConsoleId": "missing",
+            "XGameRuntimeInitialize": "implemented",
+            "XGameRuntimeUninitialize": "implemented",
+            "XGameRuntimeIsFeatureAvailable": "implemented",
+            "XGameGetXboxTitleId": "implemented",
+            "XSystemGetDeviceType": "implemented",
+            "XSystemGetConsoleId": "implemented",
             "XSystemGetAppSpecificDeviceId": "missing",
-            "XSystemGetXboxLiveSandboxId": "missing",
+            "XSystemGetXboxLiveSandboxId": "implemented",
             "XPackageGetCurrentProcessPackageIdentifier": "missing",
             "XLaunchUri": "missing"
           }
@@ -21,34 +21,34 @@
         {
           "name": "XTaskQueue",
           "functions": {
-            "XTaskQueueCreate": "missing",
-            "XTaskQueueCreateComposite": "missing",
-            "XTaskQueueGetPort": "missing",
-            "XTaskQueueDuplicateHandle": "missing",
-            "XTaskQueueDispatch": "missing",
-            "XTaskQueueCloseHandle": "missing",
-            "XTaskQueueTerminate": "missing",
-            "XTaskQueueSubmitCallback": "missing",
-            "XTaskQueueSubmitDelayedCallback": "missing",
-            "XTaskQueueRegisterWaiter": "missing",
-            "XTaskQueueUnregisterWaiter": "missing",
-            "XTaskQueueRegisterMonitor": "missing",
-            "XTaskQueueUnregisterMonitor": "missing",
-            "XTaskQueueGetCurrentProcessTaskQueue": "missing",
-            "XTaskQueueSetCurrentProcessTaskQueue": "missing"
+            "XTaskQueueCreate": "implemented",
+            "XTaskQueueCreateComposite": "implemented",
+            "XTaskQueueGetPort": "implemented",
+            "XTaskQueueDuplicateHandle": "implemented",
+            "XTaskQueueDispatch": "implemented",
+            "XTaskQueueCloseHandle": "implemented",
+            "XTaskQueueTerminate": "implemented",
+            "XTaskQueueSubmitCallback": "implemented",
+            "XTaskQueueSubmitDelayedCallback": "implemented",
+            "XTaskQueueRegisterWaiter": "implemented",
+            "XTaskQueueUnregisterWaiter": "implemented",
+            "XTaskQueueRegisterMonitor": "implemented",
+            "XTaskQueueUnregisterMonitor": "implemented",
+            "XTaskQueueGetCurrentProcessTaskQueue": "implemented",
+            "XTaskQueueSetCurrentProcessTaskQueue": "implemented"
           }
         },
         {
           "name": "XAsync",
           "functions": {
-            "XAsyncBegin": "missing",
-            "XAsyncComplete": "missing",
-            "XAsyncGetStatus": "missing",
-            "XAsyncGetResultSize": "missing",
-            "XAsyncGetResult": "missing",
-            "XAsyncCancel": "missing",
-            "XAsyncRun": "missing",
-            "XAsyncSchedule": "missing"
+            "XAsyncBegin": "implemented",
+            "XAsyncComplete": "implemented",
+            "XAsyncGetStatus": "implemented",
+            "XAsyncGetResultSize": "implemented",
+            "XAsyncGetResult": "implemented",
+            "XAsyncCancel": "implemented",
+            "XAsyncRun": "implemented",
+            "XAsyncSchedule": "implemented"
           }
         },
         {

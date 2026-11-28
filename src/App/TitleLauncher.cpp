@@ -18,6 +18,7 @@
 #include "Core/Logger.h"
 #include "Graphics/GraphicsShims.h"
 #include "Kernel/ExitShims.h"
+#include "Kernel/GameRuntimeShims.h"
 #include "Kernel/ProcessShims.h"
 #include "Kernel/ShimModule.h"
 #include "Kernel/StubRegistry.h"
@@ -326,11 +327,14 @@ LaunchResult RunTitleFolder(const LaunchOptions& options, Logger& logger)
                 config.Config->TitleId, executable->Name);
 
     auto session = std::make_unique<TitleSession>(logger);
-    if (!Loader::RegisterLoaderShims(session->Shims) || !Graphics::RegisterGraphicsShims(session->Shims))
+    if (!Loader::RegisterLoaderShims(session->Shims) || !Graphics::RegisterGraphicsShims(session->Shims) ||
+        !Kernel::RegisterGameRuntimeShims(session->Shims))
     {
         result.Error = LaunchError::LoadFailed;
         return result;
     }
+    Kernel::SetGameRuntimeTitle({.TitleId = Kernel::ParseTitleId(config.Config->TitleId),
+                                 .Device = Kernel::DeviceForFamily(executable->TargetDeviceFamily)});
     auto& files = session->Files.emplace(
         options.Folder, options.OverlayDirectory.empty() ? TitleDataDirectory(config.Config->IdentityName) / "Overlay"
                                                          : options.OverlayDirectory);
