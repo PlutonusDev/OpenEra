@@ -73,12 +73,12 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 | Windows system | Synchronization | 14 | 0 | 0 | 0 | 100.0% |
 | Windows system | Time and process | 14 | 1 | 0 | 0 | 93.3% |
 | Windows system | Other system libraries | 2 | 1 | 0 | 8 | 18.2% |
-| Direct3D 12 | ID3D12Device | 0 | 0 | 0 | 18 | 0.0% |
-| Direct3D 12 | ID3D12GraphicsCommandList | 0 | 0 | 0 | 23 | 0.0% |
-| Direct3D 12 | ID3D12CommandQueue | 0 | 0 | 0 | 3 | 0.0% |
+| Direct3D 12 | ID3D12Device | 0 | 17 | 0 | 1 | 0.0% |
+| Direct3D 12 | ID3D12GraphicsCommandList | 0 | 20 | 0 | 3 | 0.0% |
+| Direct3D 12 | ID3D12CommandQueue | 0 | 3 | 0 | 0 | 0.0% |
 | Input and audio | GameInput | 0 | 0 | 0 | 12 | 0.0% |
 | Input and audio | XAudio2 | 0 | 0 | 0 | 11 | 0.0% |
-| **Total** | | **104** | **2** | **0** | **116** | **46.8%** |
+| **Total** | | **104** | **42** | **0** | **76** | **46.8%** |
 
 ### GDK runtime
 
@@ -336,24 +336,24 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 | Function | Status |
 | :--- | :--- |
-| `CreateCommandQueue` | ⬜ Missing |
-| `CreateCommandAllocator` | ⬜ Missing |
-| `CreateCommandList` | ⬜ Missing |
-| `CreateGraphicsPipelineState` | ⬜ Missing |
-| `CreateComputePipelineState` | ⬜ Missing |
-| `CreateRootSignature` | ⬜ Missing |
-| `CreateDescriptorHeap` | ⬜ Missing |
-| `GetDescriptorHandleIncrementSize` | ⬜ Missing |
-| `CreateConstantBufferView` | ⬜ Missing |
-| `CreateShaderResourceView` | ⬜ Missing |
-| `CreateUnorderedAccessView` | ⬜ Missing |
-| `CreateRenderTargetView` | ⬜ Missing |
-| `CreateDepthStencilView` | ⬜ Missing |
+| `CreateCommandQueue` | 🟡 Partial |
+| `CreateCommandAllocator` | 🟡 Partial |
+| `CreateCommandList` | 🟡 Partial |
+| `CreateGraphicsPipelineState` | 🟡 Partial |
+| `CreateComputePipelineState` | 🟡 Partial |
+| `CreateRootSignature` | 🟡 Partial |
+| `CreateDescriptorHeap` | 🟡 Partial |
+| `GetDescriptorHandleIncrementSize` | 🟡 Partial |
+| `CreateConstantBufferView` | 🟡 Partial |
+| `CreateShaderResourceView` | 🟡 Partial |
+| `CreateUnorderedAccessView` | 🟡 Partial |
+| `CreateRenderTargetView` | 🟡 Partial |
+| `CreateDepthStencilView` | 🟡 Partial |
 | `CreateSampler` | ⬜ Missing |
-| `CreateCommittedResource` | ⬜ Missing |
-| `CreateHeap` | ⬜ Missing |
-| `CreatePlacedResource` | ⬜ Missing |
-| `CreateFence` | ⬜ Missing |
+| `CreateCommittedResource` | 🟡 Partial |
+| `CreateHeap` | 🟡 Partial |
+| `CreatePlacedResource` | 🟡 Partial |
+| `CreateFence` | 🟡 Partial |
 
 </details>
 
@@ -361,28 +361,28 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 | Function | Status |
 | :--- | :--- |
-| `Close` | ⬜ Missing |
-| `Reset` | ⬜ Missing |
-| `DrawInstanced` | ⬜ Missing |
+| `Close` | 🟡 Partial |
+| `Reset` | 🟡 Partial |
+| `DrawInstanced` | 🟡 Partial |
 | `DrawIndexedInstanced` | ⬜ Missing |
-| `Dispatch` | ⬜ Missing |
-| `ExecuteIndirect` | ⬜ Missing |
-| `CopyBufferRegion` | ⬜ Missing |
-| `CopyTextureRegion` | ⬜ Missing |
-| `ResourceBarrier` | ⬜ Missing |
-| `SetPipelineState` | ⬜ Missing |
-| `SetGraphicsRootSignature` | ⬜ Missing |
-| `SetComputeRootSignature` | ⬜ Missing |
-| `SetDescriptorHeaps` | ⬜ Missing |
-| `SetGraphicsRootDescriptorTable` | ⬜ Missing |
-| `SetGraphicsRoot32BitConstants` | ⬜ Missing |
-| `IASetPrimitiveTopology` | ⬜ Missing |
-| `IASetVertexBuffers` | ⬜ Missing |
+| `Dispatch` | 🟡 Partial |
+| `ExecuteIndirect` | 🟡 Partial |
+| `CopyBufferRegion` | 🟡 Partial |
+| `CopyTextureRegion` | 🟡 Partial |
+| `ResourceBarrier` | 🟡 Partial |
+| `SetPipelineState` | 🟡 Partial |
+| `SetGraphicsRootSignature` | 🟡 Partial |
+| `SetComputeRootSignature` | 🟡 Partial |
+| `SetDescriptorHeaps` | 🟡 Partial |
+| `SetGraphicsRootDescriptorTable` | 🟡 Partial |
+| `SetGraphicsRoot32BitConstants` | 🟡 Partial |
+| `IASetPrimitiveTopology` | 🟡 Partial |
+| `IASetVertexBuffers` | 🟡 Partial |
 | `IASetIndexBuffer` | ⬜ Missing |
-| `RSSetViewports` | ⬜ Missing |
-| `RSSetScissorRects` | ⬜ Missing |
-| `OMSetRenderTargets` | ⬜ Missing |
-| `ClearRenderTargetView` | ⬜ Missing |
+| `RSSetViewports` | 🟡 Partial |
+| `RSSetScissorRects` | 🟡 Partial |
+| `OMSetRenderTargets` | 🟡 Partial |
+| `ClearRenderTargetView` | 🟡 Partial |
 | `ClearDepthStencilView` | ⬜ Missing |
 
 </details>
@@ -391,9 +391,9 @@ No titles have been tested yet. When OpenEra can run something, results will be 
 
 | Function | Status |
 | :--- | :--- |
-| `ExecuteCommandLists` | ⬜ Missing |
-| `Signal` | ⬜ Missing |
-| `Wait` | ⬜ Missing |
+| `ExecuteCommandLists` | 🟡 Partial |
+| `Signal` | 🟡 Partial |
+| `Wait` | 🟡 Partial |
 
 </details>
 
